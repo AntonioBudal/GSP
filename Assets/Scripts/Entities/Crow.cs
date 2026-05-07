@@ -21,4 +21,16 @@ public class Crow
         Resilience = baseResilience;
         Lifespan = initialLifespan;
     }
+
+    // Adicionado dentro da classe Crow
+    public int GetStat(CrowStat stat)
+    {
+        switch (stat)
+        {
+            case CrowStat.Speed: return Speed;
+            case CrowStat.Focus: return Focus;
+            case CrowStat.Resilience: return Resilience;
+            default: return 0;
+        }
+    }
 }
