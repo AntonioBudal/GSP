@@ -2,33 +2,29 @@ using UnityEngine;
 
 public class TimeManager : MonoBehaviour
 {
-    [SerializeField] private bool logDays = true;
-
-    public GameClock Clock { get; private set; } = new GameClock();
-
-    public int CurrentDay => Clock.CurrentDay;
+    public GameClock Clock { get; private set; }
+    public static TimeManager Instance { get; private set; }
 
     private void Awake()
     {
-        Clock.OnDayAdvanced += HandleDayAdvanced;
-    }
-
-    private void OnDestroy()
-    {
-        Clock.OnDayAdvanced -= HandleDayAdvanced;
+        if (Instance == null)
+        {
+            Instance = this;
+            Clock = new GameClock(0);
+            
+            // Assinando os eventos atualizados do GameClock para debug visual
+            Clock.OnDayStarted += (day) => Debug.Log($"--- Iniciando Dia {day} ---");
+            Clock.OnDayProcessing += (day) => Debug.Log($"Processando Dia {day}...");
+            Clock.OnDayEnded += (day) => Debug.Log($"Dia {day} Encerrado.");
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 
     public void AdvanceTime(int days)
     {
-        if (!Clock.AdvanceDays(days))
-        {
-            Debug.LogWarning("Relógio Central: valor inválido.");
-        }
-    }
-
-    private void HandleDayAdvanced(int day)
-    {
-        if (logDays)
-            Debug.Log($"Relógio Central: Dia [{day}]");
+        Clock.AdvanceTime(days);
     }
 }

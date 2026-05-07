@@ -1,26 +1,24 @@
-using System;
-
-public enum CrowState
-{
-    Disponivel,
-    EmTreino,
-    Fadigado,
-    EmExpedicao,
-    Gestando,
-    Perdido,
-    Morto
-}
-
 public class Crow
 {
     public string ID { get; }
-    
-    // O set é internal. Ninguém fora do domínio do sistema altera isso sozinho.
     public CrowState CurrentState { get; internal set; }
 
-    public Crow(string id)
+    // Atributos de Sobrevivência
+    public int Speed { get; internal set; }
+    public int Focus { get; internal set; }
+    public int Resilience { get; internal set; }
+    
+    // Custo Irreversível
+    public int Lifespan { get; internal set; }
+
+    public Crow(string id, int baseSpeed, int baseFocus, int baseResilience, int initialLifespan)
     {
         ID = id;
         CurrentState = CrowState.Disponivel;
+        
+        Speed = baseSpeed;
+        Focus = baseFocus;
+        Resilience = baseResilience;
+        Lifespan = initialLifespan;
     }
 }

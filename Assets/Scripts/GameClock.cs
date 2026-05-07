@@ -1,21 +1,44 @@
 using System;
 
+public enum DayPhase
+{
+    StartOfDay,
+    Processing,
+    EndOfDay
+}
+
 public class GameClock
 {
-    public int CurrentDay { get; private set; } = 0;
+    public int CurrentDay { get; private set; }
+    public DayPhase CurrentPhase { get; private set; }
 
-    public event Action<int>? OnDayAdvanced;
+    // Os três eventos estruturados de turno
+    public event Action<int> OnDayStarted;
+    public event Action<int> OnDayProcessing;
+    public event Action<int> OnDayEnded;
 
-    public bool AdvanceDays(int days)
+    public GameClock(int initialDay = 0)
     {
-        if (days <= 0) return false;
+        CurrentDay = initialDay;
+    }
 
-        for (int i = 0; i < days; i++)
+    // O método que o TrainingManager e o TimeManager precisam enxergar
+    public void AdvanceTime(int daysToAdvance)
+    {
+        if (daysToAdvance <= 0) return;
+
+        for (int i = 0; i < daysToAdvance; i++)
         {
             CurrentDay++;
-            OnDayAdvanced?.Invoke(CurrentDay);
-        }
 
-        return true;
+            CurrentPhase = DayPhase.StartOfDay;
+            OnDayStarted?.Invoke(CurrentDay);
+
+            CurrentPhase = DayPhase.Processing;
+            OnDayProcessing?.Invoke(CurrentDay);
+
+            CurrentPhase = DayPhase.EndOfDay;
+            OnDayEnded?.Invoke(CurrentDay);
+        }
     }
 }
