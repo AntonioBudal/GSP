@@ -3,26 +3,28 @@ public class Crow
     public string ID { get; }
     public CrowState CurrentState { get; internal set; }
 
-    // Atributos de Sobrevivência
     public int Speed { get; internal set; }
     public int Focus { get; internal set; }
     public int Resilience { get; internal set; }
-    
-    // Custo Irreversível
     public int Lifespan { get; internal set; }
 
-    public Crow(string id, int baseSpeed, int baseFocus, int baseResilience, int initialLifespan)
+    // O peso do sangue instalado na ave
+    public GeneticSeed Genetics { get; }
+
+    // O construtor recebe a semente pronta
+    public Crow(string id, int speed, int focus, int resilience, int lifespan, GeneticSeed genetics)
     {
         ID = id;
         CurrentState = CrowState.Disponivel;
         
-        Speed = baseSpeed;
-        Focus = baseFocus;
-        Resilience = baseResilience;
-        Lifespan = initialLifespan;
+        Speed = speed;
+        Focus = focus;
+        Resilience = resilience;
+        Lifespan = lifespan;
+        
+        Genetics = genetics ?? new GeneticSeed(null);
     }
 
-    // Adicionado dentro da classe Crow
     public int GetStat(CrowStat stat)
     {
         switch (stat)
