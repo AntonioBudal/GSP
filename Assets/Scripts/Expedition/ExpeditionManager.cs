@@ -1,46 +1,54 @@
+// Assets/Scripts/Expedition/ExpeditionManager.cs
 using System;
 using System.Collections.Generic;
 
-
-
-
-// Interface para injetar a tabela de eventos futuramente
-public interface IExpeditionEventProvider
-{
-    ExpeditionEvent GetEventForDay(int day);
-}
-
 public class ExpeditionManager : IDisposable
 {
-    private CrowStateController _stateController;
-    private GameClock _clock;
-    private ExpeditionEventEngine _engine;
-    private IExpeditionEventProvider _eventProvider;
+    private readonly CrowStateController _stateController;
+    private readonly GameClock _clock;
+    private readonly ExplorationEngine _explorationEngine;
+    private readonly MapManager _mapManager;
+    private readonly MapRevealService _mapRevealService;
+    private readonly ICrowRepository _crowRepository;
 
-    private Dictionary<string, ExpeditionRuntime> _activeExpeditions;
+    private readonly Dictionary<string, ExpeditionRuntime> _activeExpeditions;
 
-    // A variável do jogador (Progresso) exigida na 3.3
-    public int PlayerProgress { get; private set; }
-
-    public event Action<ExpeditionProgressEvent> OnExpeditionDayProcessed;
+    public event Action<ExpeditionProgressEvent> OnExpeditionTick;
 
     public ExpeditionManager(CrowStateController stateController, GameClock clock, 
-                             ExpeditionEventEngine engine, IExpeditionEventProvider eventProvider)
+                             ExplorationEngine explorationEngine, MapManager mapManager, 
+                             MapRevealService mapRevealService, ICrowRepository crowRepository)
     {
         _stateController = stateController;
         _clock = clock;
-        _engine = engine;
-        _eventProvider = eventProvider;
+        _explorationEngine = explorationEngine;
+        _mapManager = mapManager;
+        _mapRevealService = mapRevealService;
+        _crowRepository = crowRepository;
         _activeExpeditions = new Dictionary<string, ExpeditionRuntime>();
 
         _clock.OnDayProcessing += ProcessActiveExpeditions;
     }
 
-    public bool SendToExpedition(Crow crow, out string message)
+    public bool SendToExpedition(string crowId, MissionType mission, string targetRegionId, out string message)
     {
-        if (_activeExpeditions.ContainsKey(crow.ID))
+        Crow crow = _crowRepository.GetCrow(crowId);
+        if (crow == null)
         {
-            message = $"Rejeitado: Corvo [{crow.ID}] já está em expedição.";
+            message = "Erro: Ave não encontrada no repositório.";
+            return false;
+        }
+
+        if (_activeExpeditions.ContainsKey(crowId))
+        {
+            message = $"Bloqueio: Ave [{crowId}] já em missão.";
+            return false;
+        }
+
+        Region target = _mapManager.GetRegion(targetRegionId);
+        if (target == null || (mission == MissionType.Reconhecimento && target.CurrentState != FogState.Descoberto))
+        {
+            message = "Bloqueio: Destino inválido ou névoa incompatível.";
             return false;
         }
 
@@ -51,78 +59,64 @@ public class ExpeditionManager : IDisposable
             return false;
         }
 
-        _activeExpeditions[crow.ID] = new ExpeditionRuntime(crow);
-        message = $"Corvo [{crow.ID}] enviado.";
+        _activeExpeditions[crowId] = new ExpeditionRuntime(crowId, mission, targetRegionId);
+        message = $"Expedição autorizada. Destino: [{target.Name}].";
         return true;
     }
 
-    // AQUI ACONTECE A MÁGICA DA FASE 3.3
     private void ProcessActiveExpeditions(int currentDay)
     {
-        // 1. Busca o desafio do dia no provedor externo
-        ExpeditionEvent dailyEvent = _eventProvider.GetEventForDay(currentDay);
-        List<string> resolvedCrows = new List<string>();
+        List<string> resolvedIds = new List<string>();
 
         foreach (var kvp in _activeExpeditions)
         {
-            string crowId = kvp.Key;
             ExpeditionRuntime runtime = kvp.Value;
+            Crow crow = _crowRepository.GetCrow(runtime.CrowId);
+            Region region = _mapManager.GetRegion(runtime.TargetRegionId);
+
             runtime.DaysElapsed++;
 
-            // 2. O Motor puramente matemático atua
-            EventResolution resolution = _engine.Evaluate(runtime.Target, dailyEvent);
-
-            // 3. O Manager interpreta e aplica consequência ao runtime
-            if (resolution.Passed) runtime.Successes++;
-            else runtime.Failures++;
-
-            OnExpeditionDayProcessed?.Invoke(new ExpeditionProgressEvent(currentDay, crowId, runtime.DaysElapsed));
-
-            // 4. Critérios da Fase 3.3: Acúmulo de falhas letais ou sucessos
-            if (runtime.Failures >= 2) // Exemplo: 2 falhas na mesma expedição = Morte
+            if (runtime.Mission == MissionType.Reconhecimento)
             {
-                ResolveExpedition(crowId, CrowState.Morto, out string logDeath);
-                // Logar logDeath para a UI
-                resolvedCrows.Add(crowId);
+                // Motor 100% desacoplado de domínio
+                var result = _explorationEngine.EvaluateDailyRecon(
+                    crow.GetStat(CrowStat.Speed), 
+                    crow.GetStat(CrowStat.Focus), 
+                    region.BaseDifficulty
+                );
+
+                runtime.Progress += result.ProgressGain;
+                OnExpeditionTick?.Invoke(new ExpeditionProgressEvent(currentDay, crow.ID, runtime.DaysElapsed));
+
+                // Processamento de Dano Imediato
+                if (result.Injury == 2)
+                {
+                    _stateController.RequestTransition(crow, CrowState.Morto);
+                    resolvedIds.Add(crow.ID);
+                    continue; 
+                }
+
+                // Condição de Vitória Parametrizada
+                int requiredProgress = 3; // Isso poderá vir da dificuldade da Região futuramente
+                if (runtime.Progress >= requiredProgress)
+                {
+                    // A ave sobreviveu. O estado dela volta ao normal (ou Fadigado se Injury == 1)
+                    var nextState = result.Injury == 1 ? CrowState.Fadigado : CrowState.Disponivel;
+                    _stateController.RequestTransition(crow, nextState);
+                    
+                    // Delega a mutação do mapa para o serviço especializado
+                    _mapRevealService.ApplyExplorationSuccess(region.ID, result.RevealPower);
+                    
+                    resolvedIds.Add(crow.ID);
+                }
             }
-            else if (runtime.Successes >= 3) // Exemplo: 3 sucessos = Retorna com Glória
-            {
-                PlayerProgress += 10; // Incrementa a conta do jogador
-                ResolveExpedition(crowId, CrowState.Disponivel, out string logSuccess);
-                // Logar logSuccess para a UI
-                resolvedCrows.Add(crowId);
-            }
         }
 
-        // Limpa os corvos que terminaram a expedição do loop de processamento
-        foreach (var id in resolvedCrows)
-        {
-            _activeExpeditions.Remove(id);
-        }
-    }
-
-    public bool ResolveExpedition(string crowId, CrowState outcomeState, out string message)
-    {
-        if (!_activeExpeditions.TryGetValue(crowId, out var runtime))
-        {
-            message = "Expedição não encontrada.";
-            return false;
-        }
-
-        var transition = _stateController.RequestTransition(runtime.Target, outcomeState);
-        if (!transition.Success)
-        {
-            message = transition.Message;
-            return false;
-        }
-
-        message = $"Concluído. Corvo [{crowId}] -> [{outcomeState}]. Progresso atual do Jogador: {PlayerProgress}";
-        return true;
+        foreach (var id in resolvedIds) _activeExpeditions.Remove(id);
     }
 
     public void Dispose()
     {
-        if (_clock != null)
-            _clock.OnDayProcessing -= ProcessActiveExpeditions;
+        if (_clock != null) _clock.OnDayProcessing -= ProcessActiveExpeditions;
     }
 }
