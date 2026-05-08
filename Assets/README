@@ -1,0 +1,59 @@
+## Sobre o Projeto
+
+A estrutura do jogo gira em torno de dois núcleos principais:
+
+### Treinamento e Formação
+Um espaço de preparo, onde o jogador molda seus recursos por meio de tempo, escolha e consequência.  
+Aqui, o foco está em especialização, herança e custo de desenvolvimento.
+
+### Expedição e Revelação
+Um sistema de avanço sobre um mundo desconhecido, coberto por névoa, onde cada ação revela mais do que apenas território.  
+O progresso não é apenas geográfico — ele também é simbólico, estratégico e narrativo.
+
+---
+
+## Direção do Projeto
+
+Este não é um projeto finalizado.  
+
+O objetivo é  testar e refinar mecânicas de forma consistente, mantendo o projeto pequeno o suficiente para ser concluído e profundo o suficiente para justificar sua existência.
+
+---
+
+## Foco Atual
+
+- arquitetura modular em Unity
+- sistemas baseados em tempo
+- progressão por fases
+- gestão de risco e escassez
+- identidade visual sombria e minimalista
+- design de jogo com propósito mecânico
+
+---
+
+## Direção de Arte
+
+- **Estilo visual:** 2D 
+- **Paleta:** contrastes intensos, tons escuros e acentos saturados
+- **Atmosfera:** isolamento, tensão e vastidão
+- **Referência estética:** mundo antigo, hostil e silencioso
+
+---
+
+## Estado do Projeto
+
+**Em desenvolvimento**  
+**Foco atual:** MVP e validação de sistemas centrais
+
+---
+
+## Tecnologias
+
+- **Engine:** Unity
+- **Plataforma alvo:** PC
+- **Linguagem:** C#
+- **Escopo atual:** protótipo funcional / MVP
+
+---
+
+**Desenvolvido por:** [Antônio Budal Arins de Lima]

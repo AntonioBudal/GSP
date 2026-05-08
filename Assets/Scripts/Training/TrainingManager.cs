@@ -1,35 +1,61 @@
 using System;
 using System.Collections.Generic;
 
+// Estrutura para os Treinos de Especialização (Fase 7)
+public class TrainingRuntime
+{
+    public string CrowId { get; }
+    public CrowRole TargetRole { get; }
+
+    private readonly ProgressionManager _progressionManager;
+    public int DaysRemaining { get; set; }
+    public int LifespanCost { get; }
+
+    public TrainingRuntime(string crowId, CrowRole targetRole, int duration, int lifespanCost)
+    {
+        CrowId = crowId;
+        TargetRole = targetRole;
+        DaysRemaining = duration;
+        LifespanCost = lifespanCost;
+    }
+}
+
 public class TrainingManager : IDisposable
 {
-    private CrowStateController _stateController;
-    private GameClock _clock;
+    private readonly CrowStateController _stateController;
+    private readonly GameClock _clock;
+    private readonly ICrowRepository _crowRepository; // Injeção do repositório (Fase 5+)
 
-    // Correção 2 e 5: Objeto de runtime usando o ID (string) como chave segura
+    // --- Runtimes Baseados em ID (Prevenção de Memory Leak) ---
     private class FatigueData
     {
-        public Crow Target { get; set; }
+        public string CrowId { get; set; } // Guarda só o ID agora!
         public int DaysLeft { get; set; }
     }
     
-    private Dictionary<string, FatigueData> _runtimeFatigue;
+    private readonly Dictionary<string, FatigueData> _runtimeFatigue;
+    private readonly Dictionary<string, TrainingRuntime> _activeTrainings; // Da Fase 7
 
-    public TrainingManager(CrowStateController stateController, GameClock clock)
+    public TrainingManager(CrowStateController stateController, GameClock clock, ICrowRepository crowRepository)
     {
-        _stateController = stateController;
-        _clock = clock;
+        _stateController = stateController ?? throw new ArgumentNullException(nameof(stateController));
+        _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        _crowRepository = crowRepository ?? throw new ArgumentNullException(nameof(crowRepository));
+        
         _runtimeFatigue = new Dictionary<string, FatigueData>();
+        _activeTrainings = new Dictionary<string, TrainingRuntime>();
 
-        // Assinatura do evento
+        // Assina os eventos do relógio
         _clock.OnDayEnded += ProcessFatigueRecovery;
+        _clock.OnDayEnded += ProcessSpecializationTicks;
     }
 
-    // --- MINI FASE 2.2 ---
+    // ==========================================
+    // TREINOS BASE (Fase 2 - Otimizados)
+    // ==========================================
 
     public bool TrainAltitudeFlight(Crow crow, out string message)
     {
-        // Correção 1: Usando a API rigorosa de TransitionResult
         var transitionIn = _stateController.RequestTransition(crow, CrowState.EmTreino);
         if (!transitionIn.Success)
         {
@@ -39,8 +65,10 @@ public class TrainingManager : IDisposable
 
         crow.Speed += 1;
 
-        var transitionOut = _stateController.RequestTransition(crow, CrowState.Fadigado);
-        _runtimeFatigue[crow.ID] = new FatigueData { Target = crow, DaysLeft = 2 };
+        _stateController.RequestTransition(crow, CrowState.Fadigado);
+        
+        // Guarda apenas o ID na memória
+        _runtimeFatigue[crow.ID] = new FatigueData { CrowId = crow.ID, DaysLeft = 2 };
 
         message = $"Corvo [{crow.ID}] treinou Voo de Altitude. VEL +1. Fadigado por 2 dias.";
         return true;
@@ -58,27 +86,23 @@ public class TrainingManager : IDisposable
         crow.Resilience += 1;
         crow.Lifespan -= 3;
 
-        // Correção 4: Trava de Vida Mínima (Death Check)
         if (crow.Lifespan <= 0)
         {
-            crow.Lifespan = 0; // Previne valores negativos na UI depois
+            crow.Lifespan = 0; 
             _stateController.RequestTransition(crow, CrowState.Morto);
             message = $"Treino Letal: Corvo [{crow.ID}] não suportou a Resistência Bruta e morreu. RES +1, Vida 0.";
             return true; 
         }
 
         _stateController.RequestTransition(crow, CrowState.Fadigado);
-        _runtimeFatigue[crow.ID] = new FatigueData { Target = crow, DaysLeft = 1 };
+        _runtimeFatigue[crow.ID] = new FatigueData { CrowId = crow.ID, DaysLeft = 1 };
 
         message = $"Corvo [{crow.ID}] treinou Resistência Bruta. RES +1. Vida Útil -3. Fadigado por 1 dia.";
         return true;
     }
 
-    // --- MINI FASE 2.3 ---
-
     public bool TrainSensoryDeprivation(Crow crow, out string message)
     {
-        // Trava: Resiliência mínima
         if (crow.Resilience <= 0)
         {
             message = $"Falha: Corvo [{crow.ID}] possui Resiliência 0 e enlouqueceria na Privação Sensorial.";
@@ -95,17 +119,54 @@ public class TrainingManager : IDisposable
         crow.Focus += 1;
         crow.Resilience -= 1;
 
-        // Retorna imediatamente para Disponível, sem fadiga pessoal
         _stateController.RequestTransition(crow, CrowState.Disponivel);
-
-        // Consome 1 dia do Relógio Central
         _clock.AdvanceTime(1);
 
-        message = $"Corvo [{crow.ID}] completou Privação Sensorial. FOC +1, RES -1 permanente. O Relógio Central avançou 1 dia.";
+        message = $"Corvo [{crow.ID}] completou Privação Sensorial. FOC +1, RES -1 permanente. O Relógio avançou 1 dia.";
         return true;
     }
 
-    // --- PROCESSAMENTO E LIMPEZA ---
+    // ==========================================
+    // ESPECIALIZAÇÃO (Fase 7.1)
+    // ==========================================
+
+    public bool StartSpecialization(string crowId, CrowRole targetRole, out string message)
+    {
+        Crow crow = _crowRepository.GetCrow(crowId);
+        if (crow == null) { message = "Erro: Ave não encontrada."; return false; }
+
+        if (crow.Role != CrowRole.Geral)
+        {
+            message = $"Bloqueio: O corvo já possui um caminho ([{crow.Role}]).";
+            return false;
+        }
+
+        if (!_progressionManager.IsFeatureUnlocked(FeatureID.Especializacao))
+        {
+            message = "Falha: A Especialização exige instalações avançadas não disponíveis.";
+            return false;
+        }
+
+        int lifespanCost = 10;
+        int trainingDays = 3;
+
+        if (crow.Lifespan <= lifespanCost)
+        {
+            message = $"Bloqueio Letal: A ave possui apenas {crow.Lifespan} anos. Este treino a mataria.";
+            return false;
+        }
+
+        var transition = _stateController.RequestTransition(crow, CrowState.EmTreino);
+        if (!transition.Success) { message = transition.Message; return false; }
+
+        _activeTrainings[crowId] = new TrainingRuntime(crowId, targetRole, trainingDays, lifespanCost);
+        message = $"Especialização iniciada. Em {trainingDays} dias, [{crow.ID}] será um [{targetRole}].";
+        return true;
+    }
+
+    // ==========================================
+    // PROCESSAMENTO E LIMPEZA
+    // ==========================================
 
     private void ProcessFatigueRecovery(int currentDay)
     {
@@ -114,27 +175,53 @@ public class TrainingManager : IDisposable
         foreach (var kvp in _runtimeFatigue)
         {
             kvp.Value.DaysLeft -= 1;
-
-            if (kvp.Value.DaysLeft <= 0)
-            {
-                recoveredIDs.Add(kvp.Key);
-            }
+            if (kvp.Value.DaysLeft <= 0) recoveredIDs.Add(kvp.Key);
         }
 
         foreach (var id in recoveredIDs)
         {
-            Crow recoveredCrow = _runtimeFatigue[id].Target;
+            // Busca a ave fresca pelo repositório
+            Crow recoveredCrow = _crowRepository.GetCrow(id);
+            if (recoveredCrow != null && recoveredCrow.CurrentState == CrowState.Fadigado)
+            {
+                _stateController.RequestTransition(recoveredCrow, CrowState.Disponivel);
+            }
             _runtimeFatigue.Remove(id);
-            _stateController.RequestTransition(recoveredCrow, CrowState.Disponivel);
         }
     }
 
-    // Correção 3: Limpeza de assinatura
+    private void ProcessSpecializationTicks(int currentDay)
+    {
+        List<string> completedIds = new List<string>();
+
+        foreach (var kvp in _activeTrainings)
+        {
+            kvp.Value.DaysRemaining--;
+            if (kvp.Value.DaysRemaining <= 0) completedIds.Add(kvp.Key);
+        }
+
+        foreach (var id in completedIds)
+        {
+            TrainingRuntime runtime = _activeTrainings[id];
+            Crow crow = _crowRepository.GetCrow(id);
+
+            if (crow != null)
+            {
+                crow.Lifespan -= runtime.LifespanCost;
+                crow.Role = runtime.TargetRole;
+                _stateController.RequestTransition(crow, CrowState.Fadigado);
+            }
+
+            _activeTrainings.Remove(id);
+        }
+    }
+
     public void Dispose()
     {
         if (_clock != null)
         {
             _clock.OnDayEnded -= ProcessFatigueRecovery;
+            _clock.OnDayEnded -= ProcessSpecializationTicks;
         }
     }
 }

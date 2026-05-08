@@ -13,6 +13,24 @@ public readonly struct DemographicsData
     }
 }
 
+// Adicione isso no seu Assets/Scripts/Evangelization/EvangelizationModels.cs
+
+public readonly struct EvangelizationResult
+{
+    public int ConvertedAmount { get; }
+    public int Injury { get; }        // 0 = Ileso, 1 = Fadiga, 2 = Dano Letal (Martírio)
+    public int ProgressGain { get; }  // Avanço na duração da missão
+
+    public EvangelizationResult(int convertedAmount, int injury, int progressGain)
+    {
+        ConvertedAmount = convertedAmount;
+        Injury = injury;
+        ProgressGain = progressGain;
+    }
+}
+
+
+
 // Payload puro de resposta para qualquer mutação de almas
 public readonly struct ConversionResult
 {

@@ -8,10 +8,12 @@ public class Crow
     public int Resilience { get; internal set; }
     public int Lifespan { get; internal set; }
 
-    // O peso do sangue instalado na ave
+    // O peso do sangue instalado na ave (Fase 4)
     public GeneticSeed Genetics { get; }
 
-    // O construtor recebe a semente pronta
+    // NOVA PROPRIEDADE (Fase 7)
+    public CrowRole Role { get; internal set; }
+
     public Crow(string id, int speed, int focus, int resilience, int lifespan, GeneticSeed genetics)
     {
         ID = id;
@@ -23,6 +25,9 @@ public class Crow
         Lifespan = lifespan;
         
         Genetics = genetics ?? new GeneticSeed(null);
+        
+        // Todo corvo nasce como "Geral" (sem especialização)
+        Role = CrowRole.Geral; 
     }
 
     public int GetStat(CrowStat stat)

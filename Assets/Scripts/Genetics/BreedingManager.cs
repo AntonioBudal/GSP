@@ -6,6 +6,8 @@ public class BreedingManager : IDisposable
     private readonly CrowStateController _stateController;
     private readonly GameClock _clock;
     private readonly GeneticsEngine _geneticsEngine;
+
+    private readonly ProgressionManager _progressionManager;
     private readonly Func<string, Crow> _crowResolver; // Resolve ID para a Entidade sem criar um Repository acoplado
 
     private readonly Dictionary<string, BreedingRuntime> _activeGestaions;
@@ -52,6 +54,12 @@ public class BreedingManager : IDisposable
         {
             _stateController.RequestTransition(parentA, CrowState.Disponivel); // Rollback
             message = transitionB.Message;
+            return false;
+        }
+
+        if (!_progressionManager.IsFeatureUnlocked(FeatureID.Bercario))
+        {
+            message = "Falha: O Berçário não está desbloqueado. Sobreviva à primeira semana.";
             return false;
         }
 

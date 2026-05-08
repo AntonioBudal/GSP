@@ -5,10 +5,18 @@ using System.Collections.Generic;
 public class ExpeditionManager : IDisposable
 {
     private readonly CrowStateController _stateController;
+
+    private readonly ProgressionManager _progressionManager;
     private readonly GameClock _clock;
+    
+    // Motores Específicos
     private readonly ExplorationEngine _explorationEngine;
+    private readonly EvangelizationEngine _evangelizationEngine;
+    
+    // Serviços e Orquestradores
     private readonly MapManager _mapManager;
     private readonly MapRevealService _mapRevealService;
+    private readonly InfluenceManager _influenceManager;
     private readonly ICrowRepository _crowRepository;
 
     private readonly Dictionary<string, ExpeditionRuntime> _activeExpeditions;
@@ -16,51 +24,55 @@ public class ExpeditionManager : IDisposable
     public event Action<ExpeditionProgressEvent> OnExpeditionTick;
 
     public ExpeditionManager(CrowStateController stateController, GameClock clock, 
-                             ExplorationEngine explorationEngine, MapManager mapManager, 
-                             MapRevealService mapRevealService, ICrowRepository crowRepository)
+                             ExplorationEngine explorationEngine, EvangelizationEngine evangelizationEngine,
+                             MapManager mapManager, MapRevealService mapRevealService, 
+                             InfluenceManager influenceManager, ICrowRepository crowRepository)
     {
         _stateController = stateController;
         _clock = clock;
         _explorationEngine = explorationEngine;
+        _evangelizationEngine = evangelizationEngine;
         _mapManager = mapManager;
         _mapRevealService = mapRevealService;
+        _influenceManager = influenceManager;
         _crowRepository = crowRepository;
+        
         _activeExpeditions = new Dictionary<string, ExpeditionRuntime>();
-
         _clock.OnDayProcessing += ProcessActiveExpeditions;
     }
 
     public bool SendToExpedition(string crowId, MissionType mission, string targetRegionId, out string message)
     {
         Crow crow = _crowRepository.GetCrow(crowId);
-        if (crow == null)
-        {
-            message = "Erro: Ave não encontrada no repositório.";
-            return false;
-        }
-
-        if (_activeExpeditions.ContainsKey(crowId))
-        {
-            message = $"Bloqueio: Ave [{crowId}] já em missão.";
-            return false;
-        }
+        if (crow == null) { message = "Erro: Ave não encontrada no repositório."; return false; }
+        if (_activeExpeditions.ContainsKey(crowId)) { message = $"Bloqueio: Ave [{crowId}] já em missão."; return false; }
 
         Region target = _mapManager.GetRegion(targetRegionId);
-        if (target == null || (mission == MissionType.Reconhecimento && target.CurrentState != FogState.Descoberto))
+        if (target == null) { message = "Erro: Destino inválido."; return false; }
+
+        // Validação de Névoa por Tipo de Missão
+        if (mission == MissionType.Reconhecimento && target.CurrentState != FogState.Descoberto)
         {
-            message = "Bloqueio: Destino inválido ou névoa incompatível.";
+            message = "Bloqueio: Reconhecimento exige uma região [Descoberta].";
+            return false;
+        }
+        if (mission == MissionType.Evangelizacao && target.CurrentState != FogState.Explorado)
+        {
+            message = "Bloqueio: Evangelização exige uma região [Explorada]."; 
+            return false;
+        }
+
+        if (mission == MissionType.Evangelizacao && !_progressionManager.IsFeatureUnlocked(FeatureID.Evangelizacao))
+        {
+            message = "Falha: A Evangelização só é permitida após a Fronteira ser Aberta (3 regiões).";
             return false;
         }
 
         var transition = _stateController.RequestTransition(crow, CrowState.EmExpedicao);
-        if (!transition.Success)
-        {
-            message = transition.Message;
-            return false;
-        }
+        if (!transition.Success) { message = transition.Message; return false; }
 
         _activeExpeditions[crowId] = new ExpeditionRuntime(crowId, mission, targetRegionId);
-        message = $"Expedição autorizada. Destino: [{target.Name}].";
+        message = $"Expedição autorizada. Destino: [{target.Name}] | Missão: [{mission}].";
         return true;
     }
 
@@ -74,21 +86,25 @@ public class ExpeditionManager : IDisposable
             Crow crow = _crowRepository.GetCrow(runtime.CrowId);
             Region region = _mapManager.GetRegion(runtime.TargetRegionId);
 
+            if (crow == null || region == null) continue;
+
             runtime.DaysElapsed++;
 
+            // ==========================================
+            // FLUXO DE RECONHECIMENTO (Fase 5)
+            // ==========================================
             if (runtime.Mission == MissionType.Reconhecimento)
             {
-                // Motor 100% desacoplado de domínio
+                // Injetando crow.Role para aplicar bônus de Batedor
                 var result = _explorationEngine.EvaluateDailyRecon(
                     crow.GetStat(CrowStat.Speed), 
                     crow.GetStat(CrowStat.Focus), 
-                    region.BaseDifficulty
-                );
+                    region.BaseDifficulty, 
+                    crow.Role);
 
                 runtime.Progress += result.ProgressGain;
                 OnExpeditionTick?.Invoke(new ExpeditionProgressEvent(currentDay, crow.ID, runtime.DaysElapsed));
 
-                // Processamento de Dano Imediato
                 if (result.Injury == 2)
                 {
                     _stateController.RequestTransition(crow, CrowState.Morto);
@@ -96,18 +112,50 @@ public class ExpeditionManager : IDisposable
                     continue; 
                 }
 
-                // Condição de Vitória Parametrizada
-                int requiredProgress = 3; // Isso poderá vir da dificuldade da Região futuramente
-                if (runtime.Progress >= requiredProgress)
+                if (runtime.Progress >= 3)
                 {
-                    // A ave sobreviveu. O estado dela volta ao normal (ou Fadigado se Injury == 1)
                     var nextState = result.Injury == 1 ? CrowState.Fadigado : CrowState.Disponivel;
                     _stateController.RequestTransition(crow, nextState);
-                    
-                    // Delega a mutação do mapa para o serviço especializado
                     _mapRevealService.ApplyExplorationSuccess(region.ID, result.RevealPower);
-                    
                     resolvedIds.Add(crow.ID);
+                }
+            }
+            // ==========================================
+            // FLUXO DE EVANGELIZAÇÃO (Fase 6)
+            // ==========================================
+            else if (runtime.Mission == MissionType.Evangelizacao)
+            {
+                if (_influenceManager.TryGetInfluence(region.ID, out var influence))
+                {
+                    // Injetando crow.Role para aplicar bônus de Mensageiro
+                    var result = _evangelizationEngine.EvaluateDailyPreaching(
+                        crow.GetStat(CrowStat.Focus), 
+                        crow.GetStat(CrowStat.Resilience), 
+                        influence.Demographics.BaseResistance, 
+                        crow.Role);
+
+                    runtime.Progress += result.ProgressGain;
+                    OnExpeditionTick?.Invoke(new ExpeditionProgressEvent(currentDay, crow.ID, runtime.DaysElapsed));
+                    
+                    if (result.ConvertedAmount > 0)
+                    {
+                        _influenceManager.TryConvertBelievers(region.ID, result.ConvertedAmount);
+                    }
+
+                    if (result.Injury == 2)
+                    {
+                        _stateController.RequestTransition(crow, CrowState.Morto);
+                        resolvedIds.Add(crow.ID);
+                        continue;
+                    }
+
+                    int requiredPreachingDays = 5;
+                    if (runtime.Progress >= requiredPreachingDays)
+                    {
+                        var nextState = result.Injury == 1 ? CrowState.Fadigado : CrowState.Disponivel;
+                        _stateController.RequestTransition(crow, nextState);
+                        resolvedIds.Add(crow.ID);
+                    }
                 }
             }
         }
