@@ -27,7 +27,8 @@ public class InfluenceManager : IDisposable
                 else
                 {
                     // Em produção na Unity, você logaria um Warning aqui para o Game Designer arrumar o JSON
-                    UnityEngine.Debug.LogWarning($"[InfluenceManager] Região órfã ignorada no setup demográfico: {regionId}");
+                    // Aviso ignorado silenciosamente no domínio puro
+// Console.WriteLine($"[InfluenceManager] Região órfã ignorada: {regionId}");
                 }
             }
         }

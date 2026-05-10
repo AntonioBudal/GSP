@@ -7,6 +7,8 @@ public enum FogState
     Explorado
 }
 
+
+
 // O resultado estruturado de qualquer tentativa no mapa
 public readonly struct MapStateResult
 {
@@ -27,35 +29,39 @@ public readonly struct MapStateResult
 }
 
 // O Nó imutável
-public sealed class Region
+public class Region
 {
     public string ID { get; }
     public string Name { get; }
     public int BaseDifficulty { get; }
-    public FogState CurrentState { get; internal set; }
-    
-    // Totalmente imune a mutações externas
-    public IReadOnlyList<string> Neighbors { get; }
+    public FogState CurrentState { get; set; }
 
-    public Region(string id, string name, int baseDifficulty, IEnumerable<string> neighbors = null)
+    // 1. A lista privada e mutável (o motor do carro)
+    private readonly List<string> _neighbors;
+    
+    // 2. A propriedade pública e somente leitura (a lataria do carro)
+    public IReadOnlyList<string> Neighbors => _neighbors;
+
+    public Region(string id, string name, int baseDifficulty)
     {
         ID = id;
         Name = name;
         BaseDifficulty = baseDifficulty;
-        CurrentState = FogState.Oculto;
+        CurrentState = FogState.Oculto; // Estado inicial padrão
         
-        // Cópia dura e prevenção de auto-referência
-        var tempList = new List<string>();
-        if (neighbors != null)
+        // Inicializamos a lista privada no construtor
+        _neighbors = new List<string>();
+    }
+
+    // 3. O método controlado para adicionar vizinhos
+    public void AddNeighbor(Region neighbor)
+    {
+        if (neighbor != null && !_neighbors.Contains(neighbor.ID))
         {
-            foreach (var n in neighbors)
-            {
-                if (n != id && !tempList.Contains(n)) 
-                {
-                    tempList.Add(n);
-                }
-            }
+            _neighbors.Add(neighbor.ID);
+            
+            // Garante que o grafo seja bidirecional
+            neighbor.AddNeighbor(this); 
         }
-        Neighbors = tempList.AsReadOnly();
     }
 }

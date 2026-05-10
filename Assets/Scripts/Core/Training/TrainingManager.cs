@@ -1,3 +1,4 @@
+// Assets/Scripts/Core/Training/TrainingManager.cs
 using System;
 using System.Collections.Generic;
 
@@ -6,8 +7,6 @@ public class TrainingRuntime
 {
     public string CrowId { get; }
     public CrowRole TargetRole { get; }
-
-    private readonly ProgressionManager _progressionManager;
     public int DaysRemaining { get; set; }
     public int LifespanCost { get; }
 
@@ -24,28 +23,31 @@ public class TrainingManager : IDisposable
 {
     private readonly CrowStateController _stateController;
     private readonly GameClock _clock;
-    private readonly ICrowRepository _crowRepository; // Injeção do repositório (Fase 5+)
+    private readonly ICrowRepository _crowRepository; 
+    
+    // AQUI ESTÁ A VARIÁVEL NO LUGAR CERTO!
+    private readonly ProgressionManager _progressionManager; 
 
     // --- Runtimes Baseados em ID (Prevenção de Memory Leak) ---
     private class FatigueData
     {
-        public string CrowId { get; set; } // Guarda só o ID agora!
+        public string CrowId { get; set; } 
         public int DaysLeft { get; set; }
     }
     
     private readonly Dictionary<string, FatigueData> _runtimeFatigue;
-    private readonly Dictionary<string, TrainingRuntime> _activeTrainings; // Da Fase 7
+    private readonly Dictionary<string, TrainingRuntime> _activeTrainings; 
 
-    public TrainingManager(CrowStateController stateController, GameClock clock, ICrowRepository crowRepository)
+    public TrainingManager(CrowStateController stateController, GameClock clock, ICrowRepository crowRepository, ProgressionManager progressionManager)
     {
         _stateController = stateController ?? throw new ArgumentNullException(nameof(stateController));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _crowRepository = crowRepository ?? throw new ArgumentNullException(nameof(crowRepository));
+        _progressionManager = progressionManager ?? throw new ArgumentNullException(nameof(progressionManager));
         
         _runtimeFatigue = new Dictionary<string, FatigueData>();
         _activeTrainings = new Dictionary<string, TrainingRuntime>();
 
-        // Assina os eventos do relógio
         _clock.OnDayEnded += ProcessFatigueRecovery;
         _clock.OnDayEnded += ProcessSpecializationTicks;
     }
@@ -67,7 +69,6 @@ public class TrainingManager : IDisposable
 
         _stateController.RequestTransition(crow, CrowState.Fadigado);
         
-        // Guarda apenas o ID na memória
         _runtimeFatigue[crow.ID] = new FatigueData { CrowId = crow.ID, DaysLeft = 2 };
 
         message = $"Corvo [{crow.ID}] treinou Voo de Altitude. VEL +1. Fadigado por 2 dias.";
@@ -180,7 +181,6 @@ public class TrainingManager : IDisposable
 
         foreach (var id in recoveredIDs)
         {
-            // Busca a ave fresca pelo repositório
             Crow recoveredCrow = _crowRepository.GetCrow(id);
             if (recoveredCrow != null && recoveredCrow.CurrentState == CrowState.Fadigado)
             {

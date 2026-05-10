@@ -1,0 +1,16 @@
+{
+    "name": "Corvus.Unity",
+    "rootNamespace": "",
+    "references": [
+        "GUID:675029b031be34548be2de90425817c1"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
