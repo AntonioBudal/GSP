@@ -7,8 +7,6 @@ public enum FogState
     Explorado
 }
 
-
-
 // O resultado estruturado de qualquer tentativa no mapa
 public readonly struct MapStateResult
 {
