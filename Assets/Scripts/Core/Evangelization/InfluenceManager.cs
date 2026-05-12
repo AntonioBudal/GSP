@@ -1,6 +1,7 @@
 // Assets/Scripts/Evangelization/InfluenceManager.cs
 using System;
 using System.Collections.Generic;
+using Corvus.Core.SaveSystem; // A linha que resolve o erro!
 
 public class InfluenceManager : IDisposable
 {
@@ -8,13 +9,12 @@ public class InfluenceManager : IDisposable
     private readonly GameClock _clock;
     private readonly Dictionary<string, InfluenceRuntime> _runtimes;
 
-    public InfluenceManager(MapManager mapManager, GameClock clock, Dictionary<string, DemographicsData> initialData)
+    public InfluenceManager(MapManager mapManager, GameClock clock, Dictionary<string, DemographicsData> initialData, List<InfluenceSaveData> saveData = null)
     {
         _mapManager = mapManager ?? throw new ArgumentNullException(nameof(mapManager));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _runtimes = new Dictionary<string, InfluenceRuntime>();
 
-        // Bootstrap Seguro: Ignora dados inválidos em vez de derrubar o jogo
         if (initialData != null)
         {
             foreach (var kvp in initialData)
@@ -22,20 +22,24 @@ public class InfluenceManager : IDisposable
                 string regionId = kvp.Key;
                 if (_mapManager.GetRegion(regionId) != null)
                 {
-                    _runtimes[regionId] = new InfluenceRuntime(regionId, kvp.Value, 0);
-                }
-                else
-                {
-                    // Em produção na Unity, você logaria um Warning aqui para o Game Designer arrumar o JSON
-                    // Aviso ignorado silenciosamente no domínio puro
-// Console.WriteLine($"[InfluenceManager] Região órfã ignorada: {regionId}");
+                    // Descobre se há dados salvos para esta região
+                    int savedBelievers = 0;
+                    if (saveData != null)
+                    {
+                        var regionSave = saveData.Find(s => s.RegionID == regionId);
+                        if (regionSave != null) savedBelievers = regionSave.Believers;
+                    }
+
+                    _runtimes[regionId] = new InfluenceRuntime(regionId, kvp.Value, savedBelievers);
                 }
             }
         }
 
-        // Conexão com o pulsar do universo
         _clock.OnDayEnded += ProcessDemographicShifts;
     }
+
+    // Método para o SaveManager poder fotografar
+    public IEnumerable<InfluenceRuntime> GetAllRuntimes() => _runtimes.Values;
 
     /// <summary>
     /// Padrão Try: Leitura segura para a interface ou motores, sem null silencioso.

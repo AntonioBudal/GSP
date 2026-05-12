@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Soliloquy_
   m_EditorClassIdentifier: Corvus.Unity::SoliloquyData
   ID: SOL_DEATH_01
-  Condition: 1
+  Condition: 0
   Priority: 1
   Text: A carne cede. O sangue seca. Mas o conhecimento que trouxeram... esse permanece.

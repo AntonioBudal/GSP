@@ -31,17 +31,22 @@ public class SoliloquyDirector : MonoBehaviour
 
     private void Start()
     {
-        // Aguarda o Bootstrap iniciar o Core
-        Invoke(nameof(SubscribeToCoreEvents), 0.2f);
+        // Se o Bootstrap já estiver pronto (ex: cenas recarregadas muito rápido)
+        if (GameBootstrap.Instance != null && GameBootstrap.Instance.Clock != null)
+        {
+            SubscribeToCoreEvents();
+        }
+        else if (GameBootstrap.Instance != null)
+        {
+            // Fica esperando o Bootstrap gritar que terminou
+            GameBootstrap.Instance.OnCoreInitialized += SubscribeToCoreEvents;
+        }
     }
 
     private void SubscribeToCoreEvents()
     {
-        if (GameBootstrap.Instance == null)
-        {
-            Debug.LogError("[SoliloquyDirector] GameBootstrap está nulo! O script rodou antes do jogo existir.");
-            return;
-        }
+        if (GameBootstrap.Instance != null)
+            GameBootstrap.Instance.OnCoreInitialized -= SubscribeToCoreEvents;
 
         // Tenta assinar o Relógio (Essencial)
         if (GameBootstrap.Instance.Clock != null)

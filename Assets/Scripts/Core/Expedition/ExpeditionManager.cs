@@ -1,6 +1,7 @@
 // Assets/Scripts/Expedition/ExpeditionManager.cs
 using System;
 using System.Collections.Generic;
+using Corvus.Core.SaveSystem;
 
 public class ExpeditionManager : IDisposable
 {
@@ -26,7 +27,8 @@ public class ExpeditionManager : IDisposable
     public ExpeditionManager(CrowStateController stateController, GameClock clock, 
                              ExplorationEngine explorationEngine, EvangelizationEngine evangelizationEngine,
                              MapManager mapManager, MapRevealService mapRevealService, 
-                             InfluenceManager influenceManager, ICrowRepository crowRepository)
+                             InfluenceManager influenceManager, ICrowRepository crowRepository,
+                             List<ExpeditionSaveData> saveDatas = null) // <--- Novo parâmetro
     {
         _stateController = stateController;
         _clock = clock;
@@ -38,8 +40,24 @@ public class ExpeditionManager : IDisposable
         _crowRepository = crowRepository;
         
         _activeExpeditions = new Dictionary<string, ExpeditionRuntime>();
+
+        // Reconstruindo as Expedições
+        if (saveDatas != null)
+        {
+            foreach (var data in saveDatas)
+            {
+                var runtime = new ExpeditionRuntime(data.CrowId, data.Mission, data.TargetRegionId);
+                runtime.DaysElapsed = data.DaysElapsed;
+                runtime.Progress = data.Progress;
+                _activeExpeditions[data.CrowId] = runtime;
+            }
+        }
+
         _clock.OnDayProcessing += ProcessActiveExpeditions;
     }
+
+    // Método para o SaveManager fotografar o estado:
+    public IEnumerable<ExpeditionRuntime> GetAllActiveExpeditions() => _activeExpeditions.Values;
 
     public bool SendToExpedition(string crowId, MissionType mission, string targetRegionId, out string message)
     {

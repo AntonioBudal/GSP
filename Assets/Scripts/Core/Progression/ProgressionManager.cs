@@ -1,6 +1,7 @@
 // Assets/Scripts/Progression/ProgressionManager.cs
 using System;
 using System.Collections.Generic;
+using Corvus.Core.SaveSystem;
 
 public class ProgressionManager : IDisposable
 {
@@ -18,18 +19,40 @@ public class ProgressionManager : IDisposable
     public event Action<MilestoneID, string> OnMilestoneReached;
 
     // Injetamos os orquestradores que queremos observar
-    public ProgressionManager(GameClock clock, MapManager mapManager)
+    public ProgressionManager(GameClock clock, MapManager mapManager, ProgressionSaveData saveData = null)
     {
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _mapManager = mapManager ?? throw new ArgumentNullException(nameof(mapManager));
-
         _unlockedMilestones = new HashSet<MilestoneID>();
-        _totalDaysElapsed = 0;
-        _totalRegionsExplored = 0;
 
-        // Assinaturas passivas (O ProgressionManager apenas observa, não interfere)
+        if (saveData != null)
+        {
+            _totalDaysElapsed = saveData.TotalDaysElapsed;
+            _totalRegionsExplored = saveData.TotalRegionsExplored;
+            foreach (var milestone in saveData.UnlockedMilestones)
+            {
+                _unlockedMilestones.Add(milestone);
+            }
+        }
+        else
+        {
+            _totalDaysElapsed = 0;
+            _totalRegionsExplored = 0;
+        }
+
         _clock.OnDayEnded += HandleDayEnded;
         _mapManager.OnRegionStateChanged += HandleRegionStateChanged;
+    }
+
+    // Método para o SaveManager coletar os dados
+    public ProgressionSaveData GetSaveSnapshot()
+    {
+        return new ProgressionSaveData
+        {
+            TotalDaysElapsed = this._totalDaysElapsed,
+            TotalRegionsExplored = this._totalRegionsExplored,
+            UnlockedMilestones = new List<MilestoneID>(this._unlockedMilestones)
+        };
     }
 
     /// <summary>

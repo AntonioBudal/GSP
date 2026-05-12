@@ -1,6 +1,7 @@
 // Assets/Scripts/Core/Training/TrainingManager.cs
 using System;
 using System.Collections.Generic;
+using Corvus.Core.SaveSystem;
 
 // Estrutura para os Treinos de Especialização (Fase 7)
 public class TrainingRuntime
@@ -19,26 +20,25 @@ public class TrainingRuntime
     }
 }
 
+// AQUI ESTÁ A CORREÇÃO: FatigueData agora é pública e independente!
+public class FatigueData
+{
+    public string CrowId { get; set; } 
+    public int DaysLeft { get; set; }
+}
+
 public class TrainingManager : IDisposable
 {
     private readonly CrowStateController _stateController;
     private readonly GameClock _clock;
     private readonly ICrowRepository _crowRepository; 
-    
-    // AQUI ESTÁ A VARIÁVEL NO LUGAR CERTO!
     private readonly ProgressionManager _progressionManager; 
 
-    // --- Runtimes Baseados em ID (Prevenção de Memory Leak) ---
-    private class FatigueData
-    {
-        public string CrowId { get; set; } 
-        public int DaysLeft { get; set; }
-    }
-    
     private readonly Dictionary<string, FatigueData> _runtimeFatigue;
     private readonly Dictionary<string, TrainingRuntime> _activeTrainings; 
 
-    public TrainingManager(CrowStateController stateController, GameClock clock, ICrowRepository crowRepository, ProgressionManager progressionManager)
+    public TrainingManager(CrowStateController stateController, GameClock clock, ICrowRepository crowRepository, ProgressionManager progressionManager, 
+                           List<TrainingSaveData> trainingSave = null, List<FatigueSaveData> fatigueSave = null)
     {
         _stateController = stateController ?? throw new ArgumentNullException(nameof(stateController));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
@@ -47,6 +47,20 @@ public class TrainingManager : IDisposable
         
         _runtimeFatigue = new Dictionary<string, FatigueData>();
         _activeTrainings = new Dictionary<string, TrainingRuntime>();
+
+        // Reconstruindo Fadiga
+        if (fatigueSave != null)
+        {
+            foreach (var f in fatigueSave)
+                _runtimeFatigue[f.CrowId] = new FatigueData { CrowId = f.CrowId, DaysLeft = f.DaysLeft };
+        }
+
+        // Reconstruindo Treinos Ativos
+        if (trainingSave != null)
+        {
+            foreach (var t in trainingSave)
+                _activeTrainings[t.CrowId] = new TrainingRuntime(t.CrowId, t.TargetRole, t.DaysRemaining, t.LifespanCost);
+        }
 
         _clock.OnDayEnded += ProcessFatigueRecovery;
         _clock.OnDayEnded += ProcessSpecializationTicks;
@@ -224,4 +238,8 @@ public class TrainingManager : IDisposable
             _clock.OnDayEnded -= ProcessSpecializationTicks;
         }
     }
+
+    // Métodos para o SaveManager fotografar o estado:
+    public IEnumerable<TrainingRuntime> GetAllActiveTrainings() => _activeTrainings.Values;
+    public IEnumerable<FatigueData> GetAllFatigueData() => _runtimeFatigue.Values;
 }

@@ -7,8 +7,14 @@ public class HUDClockController : MonoBehaviour
 
     private void Start()
     {
-        // Aguarda um frame para garantir que o Bootstrap já instanciou o Clock
-        Invoke(nameof(SubscribeToClock), 0.1f);
+        if (GameBootstrap.Instance != null && GameBootstrap.Instance.Clock != null)
+        {
+            SubscribeToClock();
+        }
+        else if (GameBootstrap.Instance != null)
+        {
+            GameBootstrap.Instance.OnCoreInitialized += SubscribeToClock;
+        }
     }
 
     private void SubscribeToClock()

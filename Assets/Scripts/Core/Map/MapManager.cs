@@ -1,14 +1,19 @@
+// Assets/Scripts/Core/Map/MapManager.cs
 using System;
 using System.Collections.Generic;
+using Corvus.Core.SaveSystem; // A linha crucial que resolve o erro
 
 public class MapManager
+
 {
     private readonly Dictionary<string, Region> _regions;
+
+    public IEnumerable<Region> GetAllRegions() => _regions.Values;
 
     // Evento único e limpo com payload rico para o Unity
     public event Action<MapStateResult> OnRegionStateChanged;
 
-    public MapManager(IEnumerable<Region> initialGraph)
+    public MapManager(IEnumerable<Region> initialGraph, List<RegionSaveData> saveData = null)
     {
         _regions = new Dictionary<string, Region>();
 
@@ -32,6 +37,19 @@ public class MapManager
                         throw new ArgumentException($"Grafo inválido: Região [{region.ID}] aponta para vizinho inexistente [{neighborId}].");
                 }
             }
+
+            // --- NOVA ROTINA DE SAVE ---
+            // Se o jogo está sendo carregado do disco, sobrescreve a névoa padrão
+            if (saveData != null)
+            {
+                foreach (var savedRegion in saveData)
+                {
+                    if (_regions.TryGetValue(savedRegion.ID, out Region r))
+                    {
+                        r.CurrentState = savedRegion.CurrentState;
+                    }
+                }
+            }
         }
     }
 
@@ -40,6 +58,9 @@ public class MapManager
         _regions.TryGetValue(regionId, out Region region);
         return region;
     }
+
+    
+    
 
     /// <summary>
     /// Ponto de ignição do mapa. Força a base inicial do jogador a existir.
