@@ -11,6 +11,38 @@ public class UIManager : MonoBehaviour
     [Header("Popups")]
     public UI_ExpeditionPopup popupExpedition;
 
+    // Adicione esta variável junto com as outras (abaixo de popupExpedition)
+    [Header("Narrativa")]
+    public UI_Soliloquy soliloquyPanel;
+    private bool _isDisplayingSoliloquy = false;
+
+    // --- MÉTODOS DE NARRATIVA ---
+
+    public void TryDisplayNextSoliloquy()
+    {
+        // Se já tem um texto na tela, ignora. A fila vai segurar a próxima fala.
+        if (_isDisplayingSoliloquy) return;
+        
+        // Proteção caso o SoliloquyDirector ainda não tenha sido instanciado
+        if (SoliloquyDirector.Instance == null) return;
+
+        var nextThought = SoliloquyDirector.Instance.GetNextThought();
+        
+        if (nextThought != null && soliloquyPanel != null)
+        {
+            _isDisplayingSoliloquy = true;
+            soliloquyPanel.ShowText(nextThought.Text);
+        }
+    }
+
+    public void OnSoliloquyFinished()
+    {
+        _isDisplayingSoliloquy = false;
+        
+        // Tenta puxar o próximo da fila imediatamente após o atual sumir
+        TryDisplayNextSoliloquy();
+    }
+
     private void Awake()
     {
         if (Instance == null) Instance = this;
