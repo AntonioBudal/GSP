@@ -50,7 +50,8 @@ public class TempleRosterPresenter : MonoBehaviour
         // Lê o repositório de domínio e cria as views
         foreach (var crow in _crowRepo.GetAllCrows())
         {
-            var newCard = Instantiate(_crowCardPrefab, _cardsContainer);
+            // O "false" (worldPositionStays) é o segredo para UI não quebrar a escala
+            var newCard = Instantiate(_crowCardPrefab, _cardsContainer, false);
             newCard.Setup(
                 crow.ID, 
                 crow.Role, 
