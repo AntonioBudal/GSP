@@ -66,12 +66,14 @@ public class GameBootstrap : MonoBehaviour
         {
             Map = new MapManager(new[] { reg1, reg2, reg3 }, save.Regions);
             CrowRepo = new SimpleCrowRepository(save.Crows);
+            Map.TryDiscoverRegion("REG_MAR"); 
             Debug.Log($"[Bootstrap] Jogo Carregado. Bem-vindo de volta ao Dia {Clock.CurrentDay}.");
         }
         else
         {
             Map = new MapManager(new[] { reg1, reg2, reg3 });
             Map.UnlockStartingRegion("REG_BASE"); 
+            Map.TryDiscoverRegion("REG_MAR");       
 
             CrowRepo = new SimpleCrowRepository();
             var genetics = new GeneticSeed(null);
