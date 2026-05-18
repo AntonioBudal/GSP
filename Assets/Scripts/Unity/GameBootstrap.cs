@@ -16,6 +16,7 @@ public class GameBootstrap : MonoBehaviour
     public ExpeditionManager Expeditions { get; private set; }
     public ProgressionManager Progression { get; private set; }
     public InfluenceManager Influence { get; private set; }
+    public BreedingManager Breeding { get; private set; }
     
     // O Orquestrador de Save
     public SaveManager SaveManager { get; private set; }
@@ -34,8 +35,7 @@ public class GameBootstrap : MonoBehaviour
         }
         else { Destroy(gameObject); }
     }
-
-    private async Task InitializeCoreAsync()
+private async Task InitializeCoreAsync()
     {
         // 1. Checa o Disco
         string savePath = System.IO.Path.Combine(Application.persistentDataPath, "corvus_save.sav");
@@ -52,7 +52,8 @@ public class GameBootstrap : MonoBehaviour
         Clock = new GameClock(startDay);
         
         StateController = new CrowStateController();
-        var rng = new SystemRandom();
+        var rng = new SystemRandom(); 
+        var nativeRng = new System.Random(); // O nativo para a Genética
 
         // 3. Montar a Geografia
         var reg1 = new Region("REG_BASE", "Mosteiro de Skellig", 2);
@@ -96,6 +97,7 @@ public class GameBootstrap : MonoBehaviour
         var exploreEngine = new ExplorationEngine(rng);
         var evangelEngine = new EvangelizationEngine(rng);
         var revealService = new MapRevealService(Map, rng);
+        var geneticsEngine = new GeneticsEngine(nativeRng); // Motor de Genética instanciado
 
         Training = new TrainingManager(StateController, Clock, CrowRepo, Progression, save?.Trainings, save?.Fatigue);
         
@@ -104,9 +106,24 @@ public class GameBootstrap : MonoBehaviour
             Map, revealService, Influence, CrowRepo, save?.Expeditions
         );
 
+        // --- AQUI ESTÁ A CRIAÇÃO DO BERÇÁRIO ---
+        Breeding = new BreedingManager(StateController, Clock, geneticsEngine, CrowRepo.GetCrow);
+        
+        // A Ponte vitalícia: O Domínio gera, o Orquestrador salva no Repositório.
+        Breeding.OnChildBorn += (newCrow) => 
+        {
+            CrowRepo.AddCrow(newCrow);
+            Debug.Log($"[Berçário] Um novo corvo nasceu: {newCrow.ID}.");
+        };
+
         // 7. Inicializar o Sistema de Save Manual
         SaveManager = new SaveManager(saveService, Clock, Map, CrowRepo, Progression, Influence, Expeditions, Training);
 
         OnCoreInitialized?.Invoke();
+    }
+
+    private void OnDestroy()
+    {
+        if (Breeding != null) Breeding.Dispose();
     }
 }

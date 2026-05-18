@@ -36,8 +36,8 @@ public class UI_SaveDebug : MonoBehaviour
                 Destroy(GameBootstrap.Instance.gameObject);
             }
             
-            // Recarrega a cena atual
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+           // Recarrega a cena de BOOT para recriar o [APPCORE]
+            SceneManager.LoadScene("Scene_Boot");
         }
     }
 }
