@@ -7,13 +7,17 @@ using TMPro;
 [RequireComponent(typeof(UIWindow))]
 public class UI_NurseryPopup : MonoBehaviour
 {
-    [Header("UI Components")]
-    [SerializeField] private TMP_Dropdown _parentADropdown;
-    [SerializeField] private TMP_Dropdown _parentBDropdown;
-    [SerializeField] private TMP_InputField _childNameInput;
-    [SerializeField] private Button _btnBreed;
-    [SerializeField] private Button _btnClose;
-    [SerializeField] private TextMeshProUGUI _feedbackText;
+    [Header("Header")]
+    [SerializeField] private Button _btnClose; // Btn_Close
+
+    [Header("Body")]
+    [SerializeField] private TMP_Dropdown _parentADropdown; 
+    [SerializeField] private TMP_Dropdown _parentBDropdown; 
+    [SerializeField] private TMP_InputField _lineageNameInput; // Input_LineageName
+
+    [Header("Footer / Status (Bottom_StatusBar)")]
+    [SerializeField] private Button _btnBreed; // Btn_Breed
+    [SerializeField] private TextMeshProUGUI _feedbackText; // Footer_Report
 
     private UIWindow _window;
     private List<Crow> _availableParents = new List<Crow>();
@@ -21,6 +25,8 @@ public class UI_NurseryPopup : MonoBehaviour
     private void Awake()
     {
         _window = GetComponent<UIWindow>();
+        
+        // Atribuição imutável dos eventos de botões
         _btnClose.onClick.AddListener(() => _window.Hide());
         _btnBreed.onClick.AddListener(OnBreedClicked);
     }
@@ -28,9 +34,12 @@ public class UI_NurseryPopup : MonoBehaviour
     public void SetupAndShow()
     {
         // 1. O Presenter não guarda estado, sempre puxa fresco
+        _lineageNameInput.text = string.Empty;
+        
+        // Texto litúrgico padrão
+        _feedbackText.text = "O registro aguarda os genitores para o sacrifício genético.";
+        
         RefreshDropdowns();
-        _childNameInput.text = "";
-        _feedbackText.text = "Selecione duas aves adultas e nomeie a linhagem.";
         _window.Show();
     }
 
@@ -40,31 +49,37 @@ public class UI_NurseryPopup : MonoBehaviour
         _parentBDropdown.ClearOptions();
         _availableParents.Clear();
 
-        // Só podem acasalar aves que estão em casa e não fadigadas
+        // Consulta State-less: Lê direto da fonte da verdade
         var allCrows = GameBootstrap.Instance.CrowRepo.GetAllCrows();
+        
         foreach (var crow in allCrows)
         {
+            // Apenas aves no estado base podem realizar o ritual
             if (crow.CurrentState == CrowState.Disponivel)
             {
                 _availableParents.Add(crow);
             }
         }
 
+        // Trava visual (Disabled State) se não houver o mínimo para reprodução
         if (_availableParents.Count < 2)
         {
             var emptyOption = new List<TMP_Dropdown.OptionData> { new TMP_Dropdown.OptionData("Aves insuficientes") };
             _parentADropdown.AddOptions(emptyOption);
             _parentBDropdown.AddOptions(emptyOption);
+            
             _btnBreed.interactable = false;
         }
         else
         {
+            // Preenche os dados formatados conforme design (Ex: "Morsgar (V:7 F:5 R:8)")
             var options = _availableParents.Select(c => 
                 new TMP_Dropdown.OptionData($"{c.ID} (V:{c.Speed} F:{c.Focus} R:{c.Resilience})")
             ).ToList();
             
             _parentADropdown.AddOptions(options);
             _parentBDropdown.AddOptions(options);
+            
             _btnBreed.interactable = true;
         }
     }
@@ -75,18 +90,23 @@ public class UI_NurseryPopup : MonoBehaviour
 
         var parentA = _availableParents[_parentADropdown.value];
         var parentB = _availableParents[_parentBDropdown.value];
-        string childName = string.IsNullOrWhiteSpace(_childNameInput.text) ? "Filhote_SemNome" : _childNameInput.text;
+        
+        // Aplica o Fallback caso o jogador não nomeie a linhagem
+        string childName = string.IsNullOrWhiteSpace(_lineageNameInput.text) 
+            ? "Filhote_SemNome" 
+            : _lineageNameInput.text;
 
-        // O Presenter apenas pede ao Domínio. Ele não sabe o que é a Genética.
+        // O Presenter apenas transmite a ordem. O Domínio julga, executa e devolve a sentença.
         string message;
         bool success = GameBootstrap.Instance.Breeding.StartBreeding(parentA, parentB, childName, 3, out message);
         
+        // Atualiza o Footer_Report com a decisão do Manager
         _feedbackText.text = message;
 
         if (success)
         {
-            // Limpa o nome para evitar duplicatas acidentais e recarrega os dropdowns
-            _childNameInput.text = "";
+            // Limpa o documento para evitar duplicatas acidentais e recarrega o censo
+            _lineageNameInput.text = string.Empty;
             RefreshDropdowns();
         }
     }

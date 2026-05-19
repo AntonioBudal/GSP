@@ -5,18 +5,22 @@ public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
 
-    [Header("Janelas Principais")]
-    public UIWindow windowTemple;
-    public UIWindow windowMap;
+    [Header("Telas Principais (Mutuamente Exclusivas)")]
+    [Tooltip("Arraste aqui as janelas de fundo: Temple, Map, Bercario, etc.")]
+    [SerializeField] private UIWindow[] _mainViews; 
+
+    // Mantemos uma referência apenas para a janela de "Fallback" (quando o jogador aperta ESC)
+    [SerializeField] private UIWindow _defaultHomeWindow; 
 
     [Header("Popups")]
     public UI_ExpeditionPopup popupExpedition;
+    public UI_NurseryPopup popupNursery; // Se o Berçário for um popup modal em vez de tela cheia
 
     [Header("Narrativa")]
     public UI_Soliloquy soliloquyPanel;
     private bool _isDisplayingSoliloquy = false;
 
-    // --- NOVO: GERENCIAMENTO DINÂMICO DE JANELAS (FASE 5.3) ---
+    // Gerenciamento Dinâmico de popups e janelas arrastáveis
     private List<GameObject> _activeWindows = new List<GameObject>();
 
     private void Awake()
@@ -27,14 +31,12 @@ public class UIManager : MonoBehaviour
 
     private void Start()
     {
-        // Estado inicial da interface
-        if (windowMap != null) windowMap.HideImmediate();
-        if (windowTemple != null) windowTemple.ShowImmediate();
+        // Força o estado inicial limpando todas e abrindo apenas a Home (Templo)
+        OpenMainView(_defaultHomeWindow);
     }
 
     private void Update()
     {
-        // Se o jogador apertar ESC, limpa a tela de pop-ups e volta para a base
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             CloseAllPopupsAndWindows();
@@ -42,7 +44,31 @@ public class UIManager : MonoBehaviour
     }
 
     // ==========================================
-    // SISTEMA DE DRAG & DROP / FOCO (FASE 5.3)
+    // SISTEMA ESCALÁVEL DE JANELAS (NOVO)
+    // ==========================================
+
+    /// <summary>
+    /// Método único e genérico. Ao chamar este método por um Botão da UI, 
+    /// passe a própria UIWindow que você quer abrir como parâmetro.
+    /// </summary>
+    public void OpenMainView(UIWindow targetView)
+    {
+        if (targetView == null) return;
+
+        // Varre a lista de telas principais: liga a alvo, desliga o resto.
+        foreach (var view in _mainViews)
+        {
+            if (view == null) continue;
+
+            if (view == targetView)
+                view.Show();
+            else
+                view.Hide();
+        }
+    }
+
+    // ==========================================
+    // SISTEMA DE DRAG & DROP E POPUPS
     // ==========================================
 
     public void RegisterWindow(GameObject window)
@@ -50,7 +76,6 @@ public class UIManager : MonoBehaviour
         if (!_activeWindows.Contains(window))
         {
             _activeWindows.Add(window);
-            // Sempre que uma janela/popup abre, ela é jogada para a frente de todas as outras
             window.transform.SetAsLastSibling(); 
         }
     }
@@ -65,8 +90,6 @@ public class UIManager : MonoBehaviour
 
     public void CloseAllPopupsAndWindows()
     {
-        // Iteramos de trás para frente porque o SetActive(false) vai acionar o OnDisable() 
-        // dos pop-ups, o que vai removê-los desta lista automaticamente.
         for (int i = _activeWindows.Count - 1; i >= 0; i--)
         {
             if (_activeWindows[i] != null)
@@ -75,21 +98,17 @@ public class UIManager : MonoBehaviour
             }
         }
 
-        // Tática de UX: Ao fechar todos os pop-ups, voltamos a exibir o Templo 
-        // para o jogador não ficar encarando uma tela vazia sem janelas.
-        OpenTemple();
+        // Retorna o foco para o Templo ao limpar a tela
+        OpenMainView(_defaultHomeWindow);
     }
 
     // ==========================================
-    // MÉTODOS DE NARRATIVA E JANELAS FIXAS
+    // MÉTODOS DE NARRATIVA E CASOS ESPECÍFICOS
     // ==========================================
 
     public void TryDisplayNextSoliloquy()
     {
-        // Se já tem um texto na tela, ignora. A fila vai segurar a próxima fala.
         if (_isDisplayingSoliloquy) return;
-        
-        // Proteção caso o SoliloquyDirector ainda não tenha sido instanciado
         if (SoliloquyDirector.Instance == null) return;
 
         var nextThought = SoliloquyDirector.Instance.GetNextThought();
@@ -104,28 +123,12 @@ public class UIManager : MonoBehaviour
     public void OnSoliloquyFinished()
     {
         _isDisplayingSoliloquy = false;
-        
-        // Tenta puxar o próximo da fila imediatamente após o atual sumir
         TryDisplayNextSoliloquy();
     }
 
-    public void OpenTemple()
-    {
-        if (windowMap != null) windowMap.Hide();
-        if (windowTemple != null) windowTemple.Show();
-    }
-
-    public void OpenMap()
-    {
-        if (windowTemple != null) windowTemple.Hide();
-        if (windowMap != null) windowMap.Show();
-    }
-
+    // Popups continuam precisando de métodos específicos caso precisem receber parâmetros (como o ID da região)
     public void OpenExpeditionPopup(string regionId)
     {
-        if (popupExpedition != null)
-        {
-            popupExpedition.SetupAndShow(regionId);
-        }
+        if (popupExpedition != null) popupExpedition.SetupAndShow(regionId);
     }
 }
