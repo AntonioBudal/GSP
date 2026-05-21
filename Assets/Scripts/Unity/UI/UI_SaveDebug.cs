@@ -1,6 +1,6 @@
-// Assets/Scripts/Unity/UI_SaveDebug.cs
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.IO;
 
 public class UI_SaveDebug : MonoBehaviour
 {
@@ -25,19 +25,30 @@ public class UI_SaveDebug : MonoBehaviour
             }
         }
 
-        // F9 = Carregar o Jogo (Reiniciando o Universo)
+        // F9 = Carregar o Jogo
         if (Input.GetKeyDown(KeyCode.F9))
         {
             Debug.Log("[SaveDebug] Reiniciando a cena para forçar o Load (F9)...");
             
-            // Destrói o Bootstrap antigo para que ele recrie o universo do zero
             if (GameBootstrap.Instance != null)
             {
                 Destroy(GameBootstrap.Instance.gameObject);
             }
             
-           // Recarrega a cena de BOOT para recriar o [APPCORE]
             SceneManager.LoadScene("Scene_Boot");
+        }
+
+        // F12 = Deletar Save
+        if (Input.GetKeyDown(KeyCode.F12))
+        {
+            string savePath = Path.Combine(Application.persistentDataPath, "corvus_save.sav");
+
+            if (File.Exists(savePath))
+            {
+                File.Delete(savePath);
+
+                Debug.Log("<color=#FF0000>[SaveDebug] Arquivo de Save destruído (F12).</color> Pressione F9 para renascer um novo universo.");
+            }
         }
     }
 }

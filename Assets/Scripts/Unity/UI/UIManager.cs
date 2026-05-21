@@ -16,6 +16,14 @@ public class UIManager : MonoBehaviour
     public UI_ExpeditionPopup popupExpedition;
     public UI_NurseryPopup popupNursery; // Se o Berçário for um popup modal em vez de tela cheia
 
+    [Header("Treinamento")]
+    public UI_TrainingPopup popupTraining;
+
+    public void OpenTrainingPopup()
+    {
+    if (popupTraining != null) popupTraining.SetupAndShow();
+    }
+
     [Header("Narrativa")]
     public UI_Soliloquy soliloquyPanel;
     private bool _isDisplayingSoliloquy = false;
