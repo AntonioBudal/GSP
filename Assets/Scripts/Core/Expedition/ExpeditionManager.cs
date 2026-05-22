@@ -25,10 +25,11 @@ public class ExpeditionManager : IDisposable
     public event Action<ExpeditionProgressEvent> OnExpeditionTick;
 
     public ExpeditionManager(CrowStateController stateController, GameClock clock, 
-                             ExplorationEngine explorationEngine, EvangelizationEngine evangelizationEngine,
-                             MapManager mapManager, MapRevealService mapRevealService, 
-                             InfluenceManager influenceManager, ICrowRepository crowRepository,
-                             List<ExpeditionSaveData> saveDatas = null) // <--- Novo parâmetro
+                         ExplorationEngine explorationEngine, EvangelizationEngine evangelizationEngine,
+                         MapManager mapManager, MapRevealService mapRevealService, 
+                         InfluenceManager influenceManager, ICrowRepository crowRepository,
+                         ProgressionManager progressionManager, 
+                         List<ExpeditionSaveData> saveDatas = null) 
     {
         _stateController = stateController;
         _clock = clock;
@@ -38,6 +39,7 @@ public class ExpeditionManager : IDisposable
         _mapRevealService = mapRevealService;
         _influenceManager = influenceManager;
         _crowRepository = crowRepository;
+        _progressionManager = progressionManager;
         
         _activeExpeditions = new Dictionary<string, ExpeditionRuntime>();
 

@@ -48,27 +48,29 @@ public class SoliloquyDirector : MonoBehaviour
         if (GameBootstrap.Instance != null)
             GameBootstrap.Instance.OnCoreInitialized -= SubscribeToCoreEvents;
 
-        // Tenta assinar o Relógio (Essencial)
         if (GameBootstrap.Instance.Clock != null)
         {
             GameBootstrap.Instance.Clock.OnDayEnded += HandleDayTick;
-            Debug.Log("[SoliloquyDirector] Inscrito no Relógio com sucesso.");
-        }
-        else
-        {
-            Debug.LogError("[SoliloquyDirector] GameBootstrap.Clock está nulo!");
         }
 
-        // Tenta assinar a Progressão (Opcional, não deve quebrar o resto se não existir)
         if (GameBootstrap.Instance.Progression != null)
         {
             GameBootstrap.Instance.Progression.OnMilestoneReached += HandleMilestone;
-            Debug.Log("[SoliloquyDirector] Inscrito na Progressão com sucesso.");
         }
-        else
+
+        // --- NOVO: CONEXÃO DA MORTE COM A NARRATIVA ---
+        if (GameBootstrap.Instance.StateController != null)
         {
-            Debug.LogWarning("[SoliloquyDirector] GameBootstrap.Progression está nulo. Gatilhos de Milestone não funcionarão ainda.");
+            GameBootstrap.Instance.StateController.OnCrowDied += HandleCrowDeath;
+            Debug.Log("[SoliloquyDirector] Inscrito nas fatalidades do StateController.");
         }
+    }
+
+    // O Handler direto que ouve o Domínio
+    private void HandleCrowDeath(Crow deadCrow)
+    {
+        Debug.Log($"[Soliloquy] O diretor notou a morte de {deadCrow.ID}. Invocando luto.");
+        TriggerSoliloquy(TriggerCondition.PrimeiraMorte);
     }
 
     // --- OS GATILHOS ---

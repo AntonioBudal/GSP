@@ -27,6 +27,8 @@ public class BreedingManager : IDisposable
         _clock.OnDayEnded += ProcessGestationTicks;
     }
 
+
+    public bool HasActiveGestations() => _activeGestaions.Count > 0;
     public bool StartBreeding(Crow parentA, Crow parentB, string targetChildId, int gestationDays, out string message)
     {
         if (parentA.ID == parentB.ID)

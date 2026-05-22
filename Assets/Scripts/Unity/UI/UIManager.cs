@@ -31,6 +31,19 @@ public class UIManager : MonoBehaviour
     // Gerenciamento Dinâmico de popups e janelas arrastáveis
     private List<GameObject> _activeWindows = new List<GameObject>();
 
+    [Header("Fim dos Tempos")]
+    public GameObject panelExtinction;
+
+    public void ShowExtinctionScreen()
+    {
+        CloseAllPopupsAndWindows();
+        if (panelExtinction != null)
+        {
+            panelExtinction.SetActive(true);
+            panelExtinction.transform.SetAsLastSibling(); // Garante que fica por cima do HUD
+        }
+    }
+
     private void Awake()
     {
         if (Instance == null) Instance = this;

@@ -8,7 +8,8 @@ public enum GameState
     Boot,
     Menu,
     Playing,
-    Paused
+    Paused,
+    GameOver // <--- ADICIONE ESTA LINHA
 }
 
 public class GameStateController : MonoBehaviour

@@ -31,6 +31,15 @@ public class MapRenderer : MonoBehaviour
         Invoke(nameof(BuildVisualMap), 0.1f);
     }
 
+    private class VisualEdge
+    {
+        public string RegionA;
+        public string RegionB;
+        public GameObject EdgeObject;
+    }
+
+    private List<VisualEdge> _visualEdges = new List<VisualEdge>();
+
     private void BuildVisualMap()
     {
         var mapManager = GameBootstrap.Instance.Map;
@@ -72,8 +81,10 @@ public class MapRenderer : MonoBehaviour
                 
                 if (!drawnEdges.Contains(edgeKey) && _spawnedNodes.ContainsKey(neighborId))
                 {
-                    DrawEdge(_spawnedNodes[anchor.RegionID].transform as RectTransform, 
-                             _spawnedNodes[neighborId].transform as RectTransform);
+                    GameObject newEdge = DrawEdge(_spawnedNodes[anchor.RegionID].transform as RectTransform, 
+                                                  _spawnedNodes[neighborId].transform as RectTransform);
+                    
+                    _visualEdges.Add(new VisualEdge { RegionA = anchor.RegionID, RegionB = neighborId, EdgeObject = newEdge });
                     drawnEdges.Add(edgeKey);
                 }
             }
@@ -83,7 +94,7 @@ public class MapRenderer : MonoBehaviour
         mapManager.OnRegionStateChanged += HandleRegionStateChanged;
     }
 
-    private void DrawEdge(RectTransform from, RectTransform to)
+    private GameObject DrawEdge(RectTransform from, RectTransform to)
     {
         // O EdgePrefab é uma imagem esticada e rotacionada matematicamente entre os dois pontos
         var edgeObj = Instantiate(_edgePrefab, _edgesContainer);
@@ -96,6 +107,7 @@ public class MapRenderer : MonoBehaviour
         float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
         edgeRect.rotation = Quaternion.Euler(0, 0, angle);
         edgeRect.sizeDelta = new Vector2(distance, 5f); // 5f de espessura da linha
+        return edgeObj;
     }
 
     private void HandleRegionStateChanged(MapStateResult result)
@@ -103,6 +115,28 @@ public class MapRenderer : MonoBehaviour
         if (_spawnedNodes.TryGetValue(result.RegionId, out var node))
         {
             node.UpdateVisualState(result.NewState);
+        }
+        UpdateAllEdgesVisibility(); // NOVO: Manda as linhas se avaliarem
+    }
+
+    private void UpdateAllEdgesVisibility()
+    {
+        var mapManager = GameBootstrap.Instance.Map;
+        foreach (var edge in _visualEdges)
+        {
+            var regA = mapManager.GetRegion(edge.RegionA);
+            var regB = mapManager.GetRegion(edge.RegionB);
+
+            // A linha só é visível (e iluminada) se pelo menos UMA das pontas não estiver em trevas absolutas
+            if (regA.CurrentState == FogState.Oculto && regB.CurrentState == FogState.Oculto)
+            {
+                edge.EdgeObject.SetActive(false);
+            }
+            else
+            {
+                edge.EdgeObject.SetActive(true);
+                // Você pode mudar a cor do EdgeObject aqui (ex: dourado se ambos explorados, cinza se descobertos)
+            }
         }
     }
 

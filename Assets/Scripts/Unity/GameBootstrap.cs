@@ -102,8 +102,10 @@ private async Task InitializeCoreAsync()
         Training = new TrainingManager(StateController, Clock, CrowRepo, Progression, save?.Trainings, save?.Fatigue);
         
         Expeditions = new ExpeditionManager(
-            StateController, Clock, exploreEngine, evangelEngine, 
-            Map, revealService, Influence, CrowRepo, save?.Expeditions
+        StateController, Clock, exploreEngine, evangelEngine, 
+        Map, revealService, Influence, CrowRepo, 
+        Progression, // <--- ADICIONE ESTA LINHA (A injeção do ProgressionManager)
+        save?.Expeditions
         );
 
         // --- AQUI ESTÁ A CRIAÇÃO DO BERÇÁRIO ---
@@ -118,8 +120,35 @@ private async Task InitializeCoreAsync()
 
         // 7. Inicializar o Sistema de Save Manual
         SaveManager = new SaveManager(saveService, Clock, Map, CrowRepo, Progression, Influence, Expeditions, Training);
-
+        StateController.OnCrowDied += EvaluateExtinction;
         OnCoreInitialized?.Invoke();
+    }
+
+    private void EvaluateExtinction(Crow deadCrow)
+    {
+        // 1. O Repositório tem alguma ave viável?
+        bool hasLivingCrows = false;
+        foreach (var crow in CrowRepo.GetAllCrows())
+        {
+            if (crow.CurrentState != CrowState.Morto && crow.CurrentState != CrowState.Perdido)
+            {
+                hasLivingCrows = true;
+                break;
+            }
+        }
+
+        // 2. O Berçário tem alguma semente prometida? (BreedingManager precisa expor a contagem)
+        // Se o seu BreedingManager.cs não tem esse método, assumiremos a extinção imediata pela morte das aves ativas para o MVP.
+        bool hasPendingBirths = Breeding.HasActiveGestations(); 
+
+        if (!hasLivingCrows && !hasPendingBirths)
+        {
+            Debug.LogError("<color=#FF0000>[SISTEMA CRÍTICO] A linhagem se extinguiu. O mosteiro caiu.</color>");
+            GameStateController.Instance.ChangeState(GameState.GameOver); // Adicione 'GameOver' no enum GameState
+            
+            // Avisa a UI para jogar a tela de luto (Fase 9.2)
+            UIManager.Instance.ShowExtinctionScreen();
+        }
     }
 
     private void OnDestroy()
