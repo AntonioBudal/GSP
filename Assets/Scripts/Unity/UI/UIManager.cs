@@ -152,4 +152,11 @@ public class UIManager : MonoBehaviour
     {
         if (popupExpedition != null) popupExpedition.SetupAndShow(regionId);
     }
+
+    public void OpenCrowDetails(string crowId)
+    {
+        Debug.Log($"[UI] Solicitada abertura da ficha do corvo: {crowId}");
+        // Quando criarmos a janela de detalhes, a chamada será:
+        // if (popupCrowDetails != null) popupCrowDetails.SetupAndShow(crowId);
+    }
 }

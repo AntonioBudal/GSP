@@ -4,6 +4,7 @@ public class CrowStateController
 {
     // NOVO: O evento puro que ecoa a morte de uma ave pelo domínio
     public event Action<Crow> OnCrowDied;
+    public event Action<Crow> OnStateChanged;
 
     /// <summary>
     /// Avalia e executa a transição de estado da ave se for legal.
@@ -28,6 +29,8 @@ public class CrowStateController
 
         // 3. Execução (Autorizada)
         crow.CurrentState = targetState;
+
+        OnStateChanged?.Invoke(crow);
 
         // 4. O Gatilho Sistêmico
         if (targetState == CrowState.Morto)
