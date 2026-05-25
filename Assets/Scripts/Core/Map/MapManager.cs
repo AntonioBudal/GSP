@@ -124,4 +124,15 @@ public class MapManager
         OnRegionStateChanged?.Invoke(result);
         return result;
     }
+
+    public void InitializeProceduralGraph(IEnumerable<Region> generatedGraph)
+    {
+        foreach (var region in generatedGraph)
+        {
+            if (!_regions.ContainsKey(region.ID))
+            {
+                _regions.Add(region.ID, region);
+            }
+        }
+    }
 }

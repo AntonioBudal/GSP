@@ -27,7 +27,23 @@ public class BreedingManager : IDisposable
         _clock.OnDayEnded += ProcessGestationTicks;
     }
 
-
+    // Adicione isso no seu BreedingManager.cs (no Core)
+    public float GetGestationProgressPercentage(string parentId)
+    {
+        foreach (var runtime in _activeGestaions.Values)
+        {
+            if (runtime.ParentAId == parentId || runtime.ParentBId == parentId)
+            {
+                // Como não sei se você salvou o TotalDays no BreedingRuntime, 
+                // usarei uma lógica segura com o valor que sabemos que falta.
+                // Substitua "3f" pelo total real de dias se for variável.
+                float totalDays = 3f; 
+                float progress = (totalDays - runtime.DaysRemaining) / totalDays;
+                return Math.Max(0f, Math.Min(1f, progress)); // Garante que fique entre 0 e 1
+            }
+        }
+        return 0f;
+    }
     public bool HasActiveGestations() => _activeGestaions.Count > 0;
     public bool StartBreeding(Crow parentA, Crow parentB, string targetChildId, int gestationDays, out string message)
     {

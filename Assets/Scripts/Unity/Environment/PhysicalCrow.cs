@@ -13,6 +13,11 @@ public class PhysicalCrow : MonoBehaviour, IInteractable
     [SerializeField] private TextMeshPro _promptText;
     [SerializeField] private string _actionDescription = "Inspecionar Linhagem";
 
+
+    [Header("Âncoras de Sala (Posições no Mapa)")]
+    [SerializeField] private Transform _patioAnchor;
+    [SerializeField] private Transform _trainingRoomAnchor;
+    [SerializeField] private Transform _nurseryAnchor;
     public string InteractionPrompt => _actionDescription;
 
     private void Start()
@@ -64,30 +69,46 @@ public class PhysicalCrow : MonoBehaviour, IInteractable
     /// dependendo do estado biológico da entidade no Core.
     /// </summary>
     public void EvaluatePresence()
-    {
-        if (GameBootstrap.Instance == null || GameBootstrap.Instance.CrowRepo == null) return;
+ {
+     if (GameBootstrap.Instance == null || GameBootstrap.Instance.CrowRepo == null) return;
 
-        var crowEntity = GameBootstrap.Instance.CrowRepo.GetCrow(_crowId);
-        if (crowEntity == null)
-        {
-            // Se o corvo sumiu do banco de dados, destrói sua representação física
-            gameObject.SetActive(false);
-            return;
-        }
+     var crowEntity = GameBootstrap.Instance.CrowRepo.GetCrow(_crowId);
+     if (crowEntity == null)
+     {
+         gameObject.SetActive(false);
+         return;
+     }
 
-        // Regra de Ocultação: Se viajou, morreu ou foi perdido, desaparece do cenário 2D
-        if (crowEntity.CurrentState == CrowState.EmExpedicao || 
-            crowEntity.CurrentState == CrowState.Morto || 
-            crowEntity.CurrentState == CrowState.Perdido)
-        {
-            HidePrompt();
-            gameObject.SetActive(false);
-        }
-        else
-        {
-            gameObject.SetActive(true);
-        }
-    }
+     // 1. Ocultação Absoluta
+     if (crowEntity.CurrentState == CrowState.EmExpedicao || 
+         crowEntity.CurrentState == CrowState.Morto || 
+         crowEntity.CurrentState == CrowState.Perdido)
+     {
+         HidePrompt();
+         gameObject.SetActive(false);
+         return;
+     }
+
+     // 2. Presença Física - Ativa o objeto
+     gameObject.SetActive(true);
+
+     // 3. Posicionamento Espacial (Migração)
+     switch (crowEntity.CurrentState)
+     {
+         case CrowState.Disponivel:
+         case CrowState.Fadigado:
+             if (_patioAnchor != null) transform.position = _patioAnchor.position;
+             break;
+
+         case CrowState.EmTreino:
+             if (_trainingRoomAnchor != null) transform.position = _trainingRoomAnchor.position;
+             break;
+
+         case CrowState.Gestando:
+             if (_nurseryAnchor != null) transform.position = _nurseryAnchor.position;
+             break;
+     }
+ }
 
     private void OnDestroy()
     {
@@ -95,5 +116,12 @@ public class PhysicalCrow : MonoBehaviour, IInteractable
         {
             GameBootstrap.Instance.Clock.OnDayEnded -= OnDayChanged;
         }
+    }
+
+    // Injetado pelo RoomManager no momento do nascimento/spawn
+    public void SetupCrow(string id)
+    {
+        _crowId = id;
+        EvaluatePresence();
     }
 }
