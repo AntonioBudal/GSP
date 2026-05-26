@@ -1,0 +1,250 @@
+- Main Camera
+- [UI_MASTER_CANVAS]
+  - [Layer_Background]
+  - [Layer_HUD]
+    - Templo
+      - Text (TMP)
+    - Mapa
+      - Text (TMP)
+    - Berçario
+      - Text (TMP)
+    - Treinamento
+      - Text (TMP)
+    - UI_Soliloquy_Container
+      - UI_Soliloquy
+    - Panel_GameOver
+      - Text (TMP)
+      - Button
+        - Text (TMP)
+    - TopBar_HUD
+      - StatusBlock_Total
+        - Icon
+        - Text_Count
+      - StatusBlock_Treino
+        - Icon
+        - Text_Count
+      - StatusBlock_Gestacao
+        - Icon
+        - Text_Count
+      - StatusBlock_Viagem
+        - Icon
+        - Text_Count
+      - Container_Day
+        - Text_DayCount
+        - Button_NextDay
+          - Text (TMP)
+    - UI_MapPawn
+      - Text (TMP)
+  - [Layer_Windows]
+    - Window_Temple
+      - Container
+    - Window_Map
+      - Background_Map
+      - Container_Holes
+      - Fog_Darkness
+      - Container_Edges
+        - Container_Nodes
+      - MapGenerator_Engine
+      - Container_Paws
+  - [Layer_Popups]
+    - Popup_Expedition
+      - Button
+        - Text (TMP)
+      - GameObject
+        - Título.
+        - Lista de corvos
+          - Label
+          - Arrow
+          - Template
+            - Viewport
+              - Content
+                - Item
+                  - Item Background
+                  - Item Checkmark
+                  - Item Label
+            - Scrollbar
+              - Sliding Area
+                - Handle
+        - Container
+          - Reconhecer
+            - GameObject
+            - Text (TMP)
+          - Evangelizar
+            - GameObject
+            - Text (TMP)
+        - Logs
+    - Popup_Nursery
+      - FX_BackBlur
+        - DarkOverlay
+        - NoiseOverlay
+      - Frame_Outer
+        - Header
+          - Raven_Emblem
+          - Title_Text
+          - Subtitle_Text
+          - Button
+            - Text (TMP)
+        - Body
+          - ParentSelection_Row
+            - ParentA_Panel
+              - Label_Genitor
+              - Dropdown_Background
+                - Dropdown A
+                  - Label
+                  - Arrow
+                  - Template
+                    - Viewport
+                      - Content
+                        - Item
+                          - Item Background
+                          - Item Checkmark
+                          - Item Label
+                    - Scrollbar
+                      - Sliding Area
+                        - Handle
+              - StatsBadge
+              - StatsPanel
+                - Stat_Velocidade
+                - Stat_Foco
+                - Stat_Resiliencia
+            - ParentB_Panel
+              - Label_Genitor
+              - Dropdown_Background
+                - Dropdown B
+                  - Label
+                  - Arrow
+                  - Template
+                    - Viewport
+                      - Content
+                        - Item
+                          - Item Background
+                          - Item Checkmark
+                          - Item Label
+                    - Scrollbar
+                      - Sliding Area
+                        - Handle
+              - StatsBadge
+              - StatsPanel
+                - Stat_Velocidade
+                - Stat_Foco
+                - Stat_Resiliencia
+          - RitualCenter_Row
+            - Input_LineageName
+              - Runas laterais (1)
+              - Fundo Pergaminho
+                - InputField (TMP)
+                  - Text Area
+                    - Placeholder
+                    - Text
+              - Runas laterais
+            - Btn_Breed
+              - Text (TMP)
+          - GeneticsInfo_Row
+            - AnatomyPanel
+            - FamilyTreePanel
+            - DegenerationPanel
+        - Footer_Reporter
+          - Report_Title
+          - Report_Content
+        - Bottom_StatusBar
+          - Status_Genetics
+          - Status_Gestation
+          - Status_Architecture
+          - Status_Events
+    - PopUp_Training
+      - Section_Header
+        - TextTitle
+        - Btn_Close
+          - Text (TMP)
+      - Section_Target
+        - Image_BirdPortrait
+        - Data_Container
+          - Dropdown_Crow
+            - Label
+            - Arrow
+            - Template
+              - Viewport
+                - Content
+                  - Item
+                    - Item Background
+                    - Item Checkmark
+                    - Item Label
+              - Scrollbar
+                - Sliding Area
+                  - Handle
+          - Text_Stats
+      - Section_Role
+        - Dropdown_Role
+          - Label
+          - Arrow
+          - Template
+            - Viewport
+              - Content
+                - Item
+                  - Item Background
+                  - Item Checkmark
+                  - Item Label
+            - Scrollbar
+              - Sliding Area
+                - Handle
+        - Text_RoleDesc
+      - Section_QuickTrain
+        - Btn_Altitude
+          - Image_Border
+            - Image_Light
+            - Text_Title
+            - Image_Icon
+            - Text_Desc
+        - Btn_Endurance
+          - Image_Border
+            - Image_Light
+            - Text_Title
+            - Image_Icon
+            - Text_Desc
+        - Btn_Sensory
+          - Image_Border
+            - Image_Light
+            - Text_Title
+            - Image_Icon
+            - Text_Desc
+      - Section_Specialize
+        - Btn_Specialize
+          - Text (TMP)
+      - Section_Terminal
+        - Image
+        - Text (TMP)
+- EventSystem
+- Ground
+- Priest_Player
+  - Visuals
+  - InteractionPoint
+- Crow_Batedor_Entity
+  - Visual
+  - Canvas_Prompt
+    - Text (TMP)
+- Station_Training
+  - Canvas_Prompt
+    - Text (TMP)
+- Anchors
+  - Ireland
+  - Scotland
+  - England
+  - Denmark
+  - Sweden
+  - Norway
+  - Finland
+  - Livonia
+  - Hre
+  - Poland
+  - Hungary
+  - France
+- Station_Nursery
+  - Canvas_Prompt
+    - Text (TMP)
+- Patio
+- --- ENVIRONMENT ---
+  - Room_Training
+    - Torture Stations
+    - Torture Stations_1
+    - Torture Stations_2
+  - Room_Nursery
