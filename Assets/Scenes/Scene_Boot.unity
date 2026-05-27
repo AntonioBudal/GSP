@@ -130,8 +130,6 @@ GameObject:
   - component: {fileID: 219368364}
   - component: {fileID: 219368363}
   - component: {fileID: 219368365}
-  - component: {fileID: 219368367}
-  - component: {fileID: 219368366}
   m_Layer: 0
   m_Name: '[APP_CORE]'
   m_TagString: Untagged
@@ -178,32 +176,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea90071f8ae47a64fb19137c20ee6988, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Corvus.Unity::GameBootstrap
---- !u!114 &219368366
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 219368362}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 61f6be6e08abd1c4c81c13006a10c774, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Corvus.Unity::TimeManager
---- !u!114 &219368367
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 219368362}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 769b12d30db47d24fb8544e1298e008a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Corvus.Unity::TimeTicker
-  autoAdvance: 0
-  secondsPerDay: 2
 --- !u!1 &819924417
 GameObject:
   m_ObjectHideFlags: 0
