@@ -3,25 +3,25 @@ Shader "UI/Stencil/FogReader"
     Properties
     {
         [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
-        _Color ("Tint", Color) = (0,0,0,0.95)
+        _Color ("Tint", Color) = (1,1,1,1)
     }
     SubShader
     {
         Tags { "Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent" "PreviewType"="Plane" "CanUseSpriteAtlas"="True" }
         
-        ColorMask RGBA
-        ZWrite Off
         Cull Off
+        Lighting Off
+        ZWrite Off
+        ZTest [unity_GUIZTestMode]
         Blend SrcAlpha OneMinusSrcAlpha
 
         Stencil
         {
             Ref 1
-            Comp NotEqual
+            Comp NotEqual // A NÉVOA REAGE: "Só vou me desenhar se o Stencil aqui NÃO FOR 1"
             Pass Keep
         }
 
-        // O bloco Pass (CGPROGRAM) é idêntico ao de cima, pode copiar e colar igual.
         Pass
         {
             CGPROGRAM
@@ -35,8 +35,17 @@ Shader "UI/Stencil/FogReader"
             sampler2D _MainTex;
             fixed4 _Color;
             
-            v2f vert(appdata_t v) { v2f o; o.vertex = UnityObjectToClipPos(v.vertex); o.texcoord = v.texcoord; o.color = v.color * _Color; return o; }
-            fixed4 frag(v2f i) : SV_Target { return tex2D(_MainTex, i.texcoord) * i.color; }
+            v2f vert(appdata_t v) {
+                v2f o;
+                o.vertex = UnityObjectToClipPos(v.vertex);
+                o.texcoord = v.texcoord;
+                o.color = v.color * _Color;
+                return o;
+            }
+            
+            fixed4 frag(v2f i) : SV_Target { 
+                return tex2D(_MainTex, i.texcoord) * i.color; 
+            }
             ENDCG
         }
     }

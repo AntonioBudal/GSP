@@ -4,21 +4,28 @@ Shader "UI/Stencil/HoleWriter"
     {
         [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
         _Color ("Tint", Color) = (1,1,1,1)
+        
+        // Propriedades obrigatórias para a UI da Unity não quebrar o RectTransform
+        _StencilComp ("Stencil Comparison", Float) = 8
+        _Stencil ("Stencil ID", Float) = 0
+        _StencilOp ("Stencil Operation", Float) = 0
+        _StencilWriteMask ("Stencil Write Mask", Float) = 255
+        _StencilReadMask ("Stencil Read Mask", Float) = 255
+        _ColorMask ("Color Mask", Float) = 15
     }
     SubShader
     {
         Tags { "Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent" "PreviewType"="Plane" "CanUseSpriteAtlas"="True" }
         
-        // Magia da invisibilidade
-        ColorMask 0 
+        ColorMask 0 // Fica invisível aos olhos
         ZWrite Off
         Cull Off
         Blend SrcAlpha OneMinusSrcAlpha
 
         Stencil
         {
-            Ref 1
-            Comp Always
+            Ref 1           // O ID secreto do nosso furo
+            Comp Always     // Escreve sempre que for instanciado
             Pass Replace
         }
 
@@ -43,7 +50,15 @@ Shader "UI/Stencil/HoleWriter"
                 return o;
             }
             
-            fixed4 frag(v2f i) : SV_Target { return tex2D(_MainTex, i.texcoord) * i.color; }
+            fixed4 frag(v2f i) : SV_Target { 
+                fixed4 col = tex2D(_MainTex, i.texcoord) * i.color;
+                
+                // MAGIA DA TRANSPARÊNCIA: Se o pixel for quase invisível, cancela a escrita no Stencil.
+                // Isso garante que o furo fique circular e esfumaçado, e não um bloco quadrado.
+                clip(col.a - 0.05); 
+                
+                return col; 
+            }
             ENDCG
         }
     }

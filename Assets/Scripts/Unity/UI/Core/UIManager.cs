@@ -10,6 +10,7 @@ public class UIManager : MonoBehaviour
     public UI_ExpeditionPopup popupExpedition;
     public UI_NurseryPopup popupNursery;
     public UI_TrainingPopup popupTraining;
+    public UI_MapWindow windowMap;
 
     [Header("Narrativa e Fim de Jogo")]
     public UI_Soliloquy soliloquyPanel;
@@ -41,7 +42,14 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    
+    public void OpenMapWindow()
+    {
+        if (windowMap != null)
+        {
+            windowMap.SetupAndShow();
+            RegisterModal(windowMap.GetComponent<UIWindow>());
+        }
+    }
 
     private void Update()
     {
@@ -90,14 +98,11 @@ public class UIManager : MonoBehaviour
     private void RegisterModal(UIWindow window)
     {
         if (window == null) return;
-        
-        // Garante que a janela renderize por cima de tudo
         window.transform.SetAsLastSibling(); 
+        if (!_activeModals.Contains(window)) _activeModals.Push(window);
         
-        if (!_activeModals.Contains(window))
-        {
-            _activeModals.Push(window);
-        }
+        // Pausa o jogo ao abrir qualquer janela
+        Time.timeScale = 0f; 
     }
 
     public void CloseTopModal()
@@ -107,6 +112,9 @@ public class UIManager : MonoBehaviour
             UIWindow topModal = _activeModals.Pop();
             if (topModal != null) topModal.Hide();
         }
+        
+        // Despausa se fechou a última janela
+        if (_activeModals.Count == 0) Time.timeScale = 1f; 
     }
 
     public void CloseAllModals()
