@@ -30,7 +30,7 @@ public class UI_TrainingPopup : MonoBehaviour
     private void Awake()
     {
         _window = GetComponent<UIWindow>();
-        
+        _btnClose.onClick.RemoveAllListeners();
         _btnClose.onClick.AddListener(() => _window.Hide());
         
         _btnAltitude.onClick.AddListener(OnAltitudeClicked);

@@ -26,6 +26,7 @@ public class UI_ExpeditionPopup : MonoBehaviour
         
         _btnRecon.onClick.AddListener(OnReconClicked);
         _btnEvangelize.onClick.AddListener(OnEvangelizeClicked);
+        _btnClose.onClick.RemoveAllListeners();
         _btnClose.onClick.AddListener(() => UIManager.Instance.CloseTopModal());
     }
 

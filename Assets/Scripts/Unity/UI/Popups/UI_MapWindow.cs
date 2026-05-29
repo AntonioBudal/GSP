@@ -18,6 +18,7 @@ public class UI_MapWindow : MonoBehaviour
         _window = GetComponent<UIWindow>();
         if (_btnClose != null)
         {
+            _btnClose.onClick.RemoveAllListeners();
             _btnClose.onClick.AddListener(() => UIManager.Instance.CloseTopModal());
         }
     }

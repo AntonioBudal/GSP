@@ -71,6 +71,14 @@ public class ProceduralMapGenerator : MonoBehaviour
 
         // 4. Manda a UI desenhar o mapa final
         _mapRenderer.BuildVisualMap(uiCoordinates);
+
+        if (coreRegions.Count > 0)
+        {
+            // Escolhemos a primeira região gerada (ou você pode buscar por um ID específico)
+            // para ser a base destrancada do jogador.
+            string baseId = coreRegions[0].ID;
+            GameBootstrap.Instance.Map.UnlockStartingRegion(baseId);
+        }
     }
 
     private void GenerateLogicalMap()

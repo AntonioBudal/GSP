@@ -45,7 +45,8 @@ public class UIWindow : MonoBehaviour
 
         while (!Mathf.Approximately(_canvasGroup.alpha, targetAlpha))
         {
-            _canvasGroup.alpha = Mathf.MoveTowards(_canvasGroup.alpha, targetAlpha, Time.deltaTime / _fadeDuration);
+            // Substituímos Time.deltaTime por Time.unscaledDeltaTime
+            _canvasGroup.alpha = Mathf.MoveTowards(_canvasGroup.alpha, targetAlpha, Time.unscaledDeltaTime / _fadeDuration);
             yield return null;
         }
     }

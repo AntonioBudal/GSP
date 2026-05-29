@@ -27,6 +27,7 @@ public class UI_NurseryPopup : MonoBehaviour
         _window = GetComponent<UIWindow>();
         
         // Atribuição imutável dos eventos de botões
+        _btnClose.onClick.RemoveAllListeners();
         _btnClose.onClick.AddListener(() => UIManager.Instance.CloseTopModal());
         _btnBreed.onClick.AddListener(OnBreedClicked);
     }
