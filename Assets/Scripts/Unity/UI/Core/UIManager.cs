@@ -44,6 +44,8 @@ public class UIManager : MonoBehaviour
 
     public void OpenMapWindow()
     {
+
+        GameBootstrap.Instance.Onboarding.NotifyMapOpened();
         if (windowMap != null)
         {
             windowMap.SetupAndShow();

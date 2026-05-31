@@ -17,6 +17,7 @@ public class GameBootstrap : MonoBehaviour
     public ProgressionManager Progression { get; private set; }
     public InfluenceManager Influence { get; private set; }
     public BreedingManager Breeding { get; private set; }
+    public Corvus.Core.Progression.OnboardingManager Onboarding { get; private set; }
     
     // O Orquestrador de Save
     public SaveManager SaveManager { get; private set; }
@@ -117,6 +118,9 @@ private async Task InitializeCoreAsync()
             CrowRepo.AddCrow(newCrow);
             Debug.Log($"[Berçário] Um novo corvo nasceu: {newCrow.ID}.");
         };
+        // 6.5 Injetar Onboarding (Tutorial)
+        // OBS: Precisaremos adicionar o SaveData do onboarding no seu SaveGameDTO futuramente
+        Onboarding = new Corvus.Core.Progression.OnboardingManager(Expeditions, Training, Clock, Progression, null);
 
         // 7. Inicializar o Sistema de Save Manual
         SaveManager = new SaveManager(saveService, Clock, Map, CrowRepo, Progression, Influence, Expeditions, Training);

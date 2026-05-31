@@ -4,13 +4,16 @@ using System.Collections.Generic;
 using Corvus.Core.SaveSystem;
 
 // Estrutura para os Treinos de Especialização (Fase 7)
+
 public class TrainingRuntime
 {
     public string CrowId { get; }
+   
     public CrowRole TargetRole { get; }
     public int DaysRemaining { get; set; }
     public int LifespanCost { get; }
 
+    
     public TrainingRuntime(string crowId, CrowRole targetRole, int duration, int lifespanCost)
     {
         CrowId = crowId;
@@ -33,6 +36,8 @@ public class TrainingManager : IDisposable
     private readonly GameClock _clock;
     private readonly ICrowRepository _crowRepository; 
     private readonly ProgressionManager _progressionManager; 
+
+    public event Action<string> OnBaseTrainingExecuted;
 
     private readonly Dictionary<string, FatigueData> _runtimeFatigue;
     private readonly Dictionary<string, TrainingRuntime> _activeTrainings; 
@@ -74,6 +79,7 @@ public class TrainingManager : IDisposable
     {
         var transitionIn = _stateController.RequestTransition(crow, CrowState.EmTreino);
         if (!transitionIn.Success)
+
         {
             message = $"Falha no Treino: {transitionIn.Message}";
             return false;
@@ -86,6 +92,7 @@ public class TrainingManager : IDisposable
         _runtimeFatigue[crow.ID] = new FatigueData { CrowId = crow.ID, DaysLeft = 2 };
 
         message = $"Corvo [{crow.ID}] treinou Voo de Altitude. VEL +1. Fadigado por 2 dias.";
+        OnBaseTrainingExecuted?.Invoke(crow.ID);
         return true;
     }
 

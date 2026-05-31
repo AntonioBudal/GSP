@@ -21,6 +21,7 @@ public class ExpeditionManager : IDisposable
     private readonly ICrowRepository _crowRepository;
 
     private readonly Dictionary<string, ExpeditionRuntime> _activeExpeditions;
+    public event Action<string, string> OnExpeditionStarted;
 
     public event Action<ExpeditionProgressEvent> OnExpeditionTick;
 
@@ -93,6 +94,8 @@ public class ExpeditionManager : IDisposable
 
         _activeExpeditions[crowId] = new ExpeditionRuntime(crowId, mission, targetRegionId);
         message = $"Expedição autorizada. Destino: [{target.Name}] | Missão: [{mission}].";
+        
+        OnExpeditionStarted?.Invoke(crowId, targetRegionId);
         return true;
     }
 
