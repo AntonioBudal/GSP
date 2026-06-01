@@ -37,10 +37,13 @@ public class GameBootstrap : MonoBehaviour
         else { Destroy(gameObject); }
     }
 private async Task InitializeCoreAsync()
-    {
-        // 1. Checa o Disco
-        string savePath = System.IO.Path.Combine(Application.persistentDataPath, "corvus_save.sav");
-        SaveService saveService = new SaveService(savePath);
+{
+        // 1. Checa o Disco buscando o Slot selecionado na UI do Menu
+        int activeSlot = GameStateController.Instance.SelectedSlotID;
+        string basePath = Application.persistentDataPath;
+        
+        // Injeta os dois argumentos exigidos pela nova arquitetura de múltiplos slots
+        SaveService saveService = new SaveService(basePath, activeSlot);
         
         SaveGameDTO save = null;
         if (saveService.HasSaveFile())
@@ -69,20 +72,20 @@ private async Task InitializeCoreAsync()
             Map = new MapManager(new[] { reg1, reg2, reg3 }, save.Regions);
             CrowRepo = new SimpleCrowRepository(save.Crows);
             Map.TryDiscoverRegion("REG_MAR"); 
-            Debug.Log($"[Bootstrap] Jogo Carregado. Bem-vindo de volta ao Dia {Clock.CurrentDay}.");
+            Debug.Log($"[Bootstrap] Jogo Carregado. Bem-vindo de volta ao Dia {Clock.CurrentDay} no Slot {activeSlot}.");
         }
         else
         {
             Map = new MapManager(new[] { reg1, reg2, reg3 });
             Map.UnlockStartingRegion("REG_BASE"); 
-            Map.TryDiscoverRegion("REG_MAR");       
+            Map.TryDiscoverRegion("REG_MAR");      
 
             CrowRepo = new SimpleCrowRepository();
             var genetics = new GeneticSeed(null);
             CrowRepo.AddCrow(new Crow("Corvo_Batedor", 5, 3, 3, 25, genetics));
             CrowRepo.AddCrow(new Crow("Corvo_Mensageiro", 3, 5, 4, 20, genetics));
             CrowRepo.AddCrow(new Crow("Corvo_Alfa", 4, 4, 5, 30, genetics));
-            Debug.Log("[Bootstrap] Novo Jogo Iniciado. Dados padrão injetados.");
+            Debug.Log($"[Bootstrap] Novo Jogo Iniciado no Slot {activeSlot}. Dados padrão injetados.");
         }
 
         // 5. Inicializar Gerentes de Influência e Progressão
@@ -98,33 +101,32 @@ private async Task InitializeCoreAsync()
         var exploreEngine = new ExplorationEngine(rng);
         var evangelEngine = new EvangelizationEngine(rng);
         var revealService = new MapRevealService(Map, rng);
-        var geneticsEngine = new GeneticsEngine(nativeRng); // Motor de Genética instanciado
+        var geneticsEngine = new GeneticsEngine(nativeRng); 
 
         Training = new TrainingManager(StateController, Clock, CrowRepo, Progression, save?.Trainings, save?.Fatigue);
         
         Expeditions = new ExpeditionManager(
-        StateController, Clock, exploreEngine, evangelEngine, 
-        Map, revealService, Influence, CrowRepo, 
-        Progression, // <--- ADICIONE ESTA LINHA (A injeção do ProgressionManager)
-        save?.Expeditions
+            StateController, Clock, exploreEngine, evangelEngine, 
+            Map, revealService, Influence, CrowRepo, 
+            Progression, 
+            save?.Expeditions
         );
 
-        // --- AQUI ESTÁ A CRIAÇÃO DO BERÇÁRIO ---
         Breeding = new BreedingManager(StateController, Clock, geneticsEngine, CrowRepo.GetCrow);
         
-        // A Ponte vitalícia: O Domínio gera, o Orquestrador salva no Repositório.
         Breeding.OnChildBorn += (newCrow) => 
         {
             CrowRepo.AddCrow(newCrow);
             Debug.Log($"[Berçário] Um novo corvo nasceu: {newCrow.ID}.");
         };
+
         // 6.5 Injetar Onboarding (Tutorial)
-        // OBS: Precisaremos adicionar o SaveData do onboarding no seu SaveGameDTO futuramente
         Onboarding = new Corvus.Core.Progression.OnboardingManager(Expeditions, Training, Clock, Progression, null);
 
         // 7. Inicializar o Sistema de Save Manual
-        SaveManager = new SaveManager(saveService, Clock, Map, CrowRepo, Progression, Influence, Expeditions, Training);
-        StateController.OnCrowDied += EvaluateExtinction;
+        // Como activeSlot já foi declarado e validado no Passo 1, apenas o reutilizamos aqui de forma limpa
+        SaveManager = new SaveManager(activeSlot, saveService, Clock, Map, CrowRepo, Progression, Influence, Expeditions, Training);
+        
         OnCoreInitialized?.Invoke();
     }
 

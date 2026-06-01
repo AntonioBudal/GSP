@@ -1,4 +1,5 @@
 // Assets/Scripts/Core/SaveSystem/SaveManager.cs
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -6,21 +7,22 @@ namespace Corvus.Core.SaveSystem
 {
     public class SaveManager
     {
+        private readonly int _slotId; // Guarda o slot ativo nesta sessão
         private readonly SaveService _saveService;
         private readonly GameClock _clock;
         private readonly MapManager _map;
         private readonly ICrowRepository _crowRepo;
         private readonly ProgressionManager _progression;
         private readonly InfluenceManager _influence;
-        
-        // Novas dependências
         private readonly ExpeditionManager _expeditions;
         private readonly TrainingManager _training;
 
-        public SaveManager(SaveService saveService, GameClock clock, MapManager map, ICrowRepository crowRepo, 
-                           ProgressionManager progression, InfluenceManager influence, 
+        // Adicionado 'int slotId' como o primeiro parâmetro do construtor
+        public SaveManager(int slotId, SaveService saveService, GameClock clock, MapManager map, 
+                           ICrowRepository crowRepo, ProgressionManager progression, InfluenceManager influence, 
                            ExpeditionManager expeditions, TrainingManager training)
         {
+            _slotId = slotId;
             _saveService = saveService;
             _clock = clock;
             _map = map;
@@ -33,6 +35,7 @@ namespace Corvus.Core.SaveSystem
 
         public async Task<bool> SaveCurrentGameStateAsync()
         {
+            // Monta o DTO pesado com os dados internos do jogo
             var dto = new SaveGameDTO
             {
                 CurrentDay = _clock.CurrentDay
@@ -104,8 +107,21 @@ namespace Corvus.Core.SaveSystem
                 dto.Fatigue.Add(new FatigueSaveData { CrowId = f.CrowId, DaysLeft = f.DaysLeft });
             }
 
-            // Envia para o disco (I/O assíncrono puro)
-            return await _saveService.SaveGameAsync(dto);
+            // --- NOVO: CONSTRUÇÃO DOS METADADOS LEVES ---
+            // Conta quantos corvos vivos ainda restam no mosteiro para ditar o status visual do slot
+            bool hasLivingCrows = _crowRepo.GetAllCrows().Any(c => c.CurrentState != CrowState.Morto);
+            string statusMessage = hasLivingCrows ? "A linhagem sobrevive." : "O mosteiro caiu em ruínas.";
+
+            var metadata = new SaveSlotMetadata
+            {
+                SlotID = _slotId,
+                CurrentDay = _clock.CurrentDay,
+                LastPlayedDate = DateTime.Now,
+                NarrativeStatus = statusMessage
+            };
+
+            // Envia ambos os objetos para gravação atômica em disco
+            return await _saveService.SaveGameAsync(dto, metadata);
         }
     }
 }

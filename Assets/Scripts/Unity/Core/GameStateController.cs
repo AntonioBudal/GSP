@@ -2,30 +2,29 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// O estado macro da engine (diferente do CrowState que é do domínio)
 public enum GameState
 {
     Boot,
     Menu,
     Playing,
     Paused,
-    GameOver // <--- ADICIONE ESTA LINHA
+    GameOver 
 }
 
 public class GameStateController : MonoBehaviour
 {
-    // Este é um dos poucos casos onde o padrão Singleton é aceitável na arquitetura,
-    // pois ele é a raiz absoluta do ciclo de vida da engine.
     public static GameStateController Instance { get; private set; }
     
     public GameState CurrentState { get; private set; }
+
+    // Memória do slot selecionado (-1 significa nenhum)
+    public int SelectedSlotID { get; set; } = -1; 
 
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            // A magia acontece aqui: este objeto não será destruído ao trocar de cena
             DontDestroyOnLoad(gameObject); 
         }
         else
@@ -36,11 +35,11 @@ public class GameStateController : MonoBehaviour
 
     private void Start()
     {
-        // O fluxo inicial do Boot
         if (SceneManager.GetActiveScene().name == "Scene_Boot")
         {
             ChangeState(GameState.Boot);
-            Invoke(nameof(LoadMainScene), 0.5f); // Pequeno delay apenas para garantir inicializações pesadas
+            // Em vez de carregar a MainScene, agora vamos para o Menu
+            Invoke(nameof(LoadMainMenu), 0.5f); 
         }
     }
 
@@ -50,9 +49,23 @@ public class GameStateController : MonoBehaviour
         Debug.Log($"[Engine] Estado alterado para: {newState}");
     }
 
-    private void LoadMainScene()
+    private void LoadMainMenu()
     {
-        Debug.Log("[Engine] Boot concluído. Carregando Scene_Main...");
+        Debug.Log("[Engine] Boot concluído. Carregando Scene_MainMenu...");
+        SceneManager.LoadScene("Scene_MainMenu");
+        ChangeState(GameState.Menu);
+    }
+
+    // Este método agora será chamado pelo Menu, e não mais pelo Boot
+    public void LoadMainScene()
+    {
+        if (SelectedSlotID < 0)
+        {
+            Debug.LogError("[Engine] Tentativa de iniciar o jogo sem um Slot de Save definido!");
+            return;
+        }
+
+        Debug.Log($"[Engine] Carregando Scene_Main com o Slot {SelectedSlotID}...");
         SceneManager.LoadScene("Scene_Main");
         ChangeState(GameState.Playing);
     }

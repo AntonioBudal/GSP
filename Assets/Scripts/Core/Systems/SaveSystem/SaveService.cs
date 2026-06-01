@@ -7,77 +7,71 @@ using Newtonsoft.Json;
 
 namespace Corvus.Core.SaveSystem
 {
-    /// <summary>
-    /// Serviço de I/O puro. Não contém referências à Unity.
-    /// </summary>
     public class SaveService
     {
         private readonly string _saveFilePath;
+        private readonly string _infoFilePath;
 
-        // O caminho do arquivo agora é injetado via construtor!
-        public SaveService(string saveFilePath)
+        // Construtor agora recebe o SlotID para gerar os arquivos dinamicamente
+        public SaveService(string basePath, int slotId)
         {
-            _saveFilePath = saveFilePath;
+            _saveFilePath = Path.Combine(basePath, $"slot_{slotId}.sav");
+            _infoFilePath = Path.Combine(basePath, $"slot_{slotId}.info");
         }
 
         public bool HasSaveFile()
         {
-            return File.Exists(_saveFilePath);
+            // O Slot só é válido se ambos os arquivos existirem
+            return File.Exists(_saveFilePath) && File.Exists(_infoFilePath);
         }
 
-        public async Task<bool> SaveGameAsync(SaveGameDTO saveData)
+        // Grava os dois arquivos ao mesmo tempo
+        public async Task<bool> SaveGameAsync(SaveGameDTO saveData, SaveSlotMetadata metadata)
         {
             try
             {
-                // 1. Converte o objeto C# para JSON
-                string json = JsonConvert.SerializeObject(saveData, Formatting.None);
+                // 1. Gravação do Metadado (Leve, texto puro em JSON)
+                string infoJson = JsonConvert.SerializeObject(metadata, Formatting.Indented);
+                await File.WriteAllTextAsync(_infoFilePath, infoJson);
 
-                // 2. Ofuscação simples usando Base64
-                byte[] bytes = Encoding.UTF8.GetBytes(json);
+                // 2. Gravação do Save Completo (Pesado, Base64)
+                string saveJson = JsonConvert.SerializeObject(saveData, Formatting.None);
+                byte[] bytes = Encoding.UTF8.GetBytes(saveJson);
                 string encryptedData = Convert.ToBase64String(bytes);
 
-                // 3. Escreve no disco fora da thread principal (assíncrono)
                 await File.WriteAllTextAsync(_saveFilePath, encryptedData);
                 
-                return true; // Sucesso
+                return true; 
             }
             catch (Exception)
             {
-                // Qualquer falha de I/O será capturada silenciosamente e reportada como false.
                 return false;
             }
         }
 
+        // Carrega apenas os dados pesados (o menu já leu os leves)
         public async Task<SaveGameDTO> LoadGameAsync()
         {
             if (!HasSaveFile()) return null;
 
             try
             {
-                // 1. Lê o arquivo bloqueando o mínimo possível a thread
                 string encryptedData = await File.ReadAllTextAsync(_saveFilePath);
-
-                // 2. Reverte o Base64 para JSON
                 byte[] bytes = Convert.FromBase64String(encryptedData);
                 string json = Encoding.UTF8.GetString(bytes);
 
-                // 3. Reconstrói o DTO C#
-                SaveGameDTO saveData = JsonConvert.DeserializeObject<SaveGameDTO>(json);
-                
-                return saveData;
+                return JsonConvert.DeserializeObject<SaveGameDTO>(json);
             }
             catch (Exception)
             {
-                return null; // Falha na leitura ou save corrompido
+                return null;
             }
         }
 
         public void DeleteSave()
         {
-            if (HasSaveFile())
-            {
-                File.Delete(_saveFilePath);
-            }
+            if (File.Exists(_saveFilePath)) File.Delete(_saveFilePath);
+            if (File.Exists(_infoFilePath)) File.Delete(_infoFilePath);
         }
     }
 }
