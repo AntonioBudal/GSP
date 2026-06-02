@@ -38,6 +38,11 @@ public class UIWindow : MonoBehaviour
         StartCoroutine(Fade(0f, false));
     }
 
+    public virtual bool TryClose()
+    {
+        return true; // Por padrão, todas as janelas fecham livremente
+    }
+
     private IEnumerator Fade(float targetAlpha, bool interactable)
     {
         _canvasGroup.interactable = interactable;

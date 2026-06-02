@@ -1,6 +1,8 @@
 // Assets/Scripts/Unity/GameStateController.cs
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Threading.Tasks;
+using Corvus.Core.Settings; // Necessário para acessar o SettingsManager
 
 public enum GameState
 {
@@ -16,9 +18,10 @@ public class GameStateController : MonoBehaviour
     public static GameStateController Instance { get; private set; }
     
     public GameState CurrentState { get; private set; }
-
-    // Memória do slot selecionado (-1 significa nenhum)
     public int SelectedSlotID { get; set; } = -1; 
+
+    // A única origem da verdade global para as configurações
+    public SettingsManager Settings { get; private set; }
 
     private void Awake()
     {
@@ -26,6 +29,11 @@ public class GameStateController : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject); 
+
+            // Instancia o Manager imediatamente para que outros scripts possam assinar os eventos
+            string basePath = Application.persistentDataPath;
+            var service = new SettingsService(basePath);
+            Settings = new SettingsManager(service);
         }
         else
         {
@@ -33,13 +41,17 @@ public class GameStateController : MonoBehaviour
         }
     }
 
-    private void Start()
+    private async void Start()
     {
         if (SceneManager.GetActiveScene().name == "Scene_Boot")
         {
             ChangeState(GameState.Boot);
-            // Em vez de carregar a MainScene, agora vamos para o Menu
-            Invoke(nameof(LoadMainMenu), 0.5f); 
+
+            // Aguarda a leitura do disco e a primeira aplicação de áudio/vídeo
+            await Settings.InitializeAsync();
+
+            // Após as configurações carregarem, vai para o Menu
+            LoadMainMenu(); 
         }
     }
 
@@ -56,7 +68,6 @@ public class GameStateController : MonoBehaviour
         ChangeState(GameState.Menu);
     }
 
-    // Este método agora será chamado pelo Menu, e não mais pelo Boot
     public void LoadMainScene()
     {
         if (SelectedSlotID < 0)

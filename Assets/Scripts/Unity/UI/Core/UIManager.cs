@@ -27,6 +27,17 @@ public class UIManager : MonoBehaviour
     [Header("Detalhes da Entidade")]
     public UIWindow popupCrowDetails; // Arraste a janela de ficha do corvo aqui no editor depois
 
+    public UI_SettingsWindow windowSettings;
+
+    public void OpenSettingsWindow()
+    {
+        if (windowSettings != null)
+        {
+            windowSettings.SetupAndShow();
+            RegisterModal(windowSettings);
+        }
+    }
+
     public void OpenCrowDetails(string crowId)
     {
         // Por enquanto, apenas registramos no log para a mecânica física funcionar
@@ -111,8 +122,19 @@ public class UIManager : MonoBehaviour
     {
         if (_activeModals.Count > 0)
         {
-            UIWindow topModal = _activeModals.Pop();
-            if (topModal != null) topModal.Hide();
+            UIWindow topModal = _activeModals.Peek(); // Apenas espia o topo
+            
+            // Pergunta à janela se ela pode ser fechada
+            if (topModal != null && topModal.TryClose())
+            {
+                // Se a janela autorizar (retornar true), nós a removemos e ocultamos
+                _activeModals.Pop().Hide();
+            }
+            else
+            {
+                // Se retornou false, o próprio UIWindow já assumiu o controle (ex: abriu aviso de descarte)
+                return; 
+            }
         }
         
         // Despausa se fechou a última janela
