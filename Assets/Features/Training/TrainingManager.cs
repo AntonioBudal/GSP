@@ -17,7 +17,6 @@ public class TrainingManager : MonoBehaviour
 
     private void Start()
     {
-        // Inscreve no motor de tempo
         if (TimeManager.Instance != null)
         {
             TimeManager.Instance.OnDayAdvanced += ProcessTrainings;
@@ -34,7 +33,6 @@ public class TrainingManager : MonoBehaviour
 
     private void Update()
     {
-        // Atalho de Debug: Aperte 'T' para enviar o primeiro corvo disponível para o treino de Velocidade
         if (Input.GetKeyDown(KeyCode.T))
         {
             var availableRaven = SaveManager.Instance.CurrentSave.ravens
@@ -44,42 +42,34 @@ public class TrainingManager : MonoBehaviour
             {
                 StartTraining(availableRaven.id, TrainingType.Speed);
             }
-            else
-            {
-                Debug.LogWarning("[TrainingManager] Nenhum corvo disponível para treinar!");
-            }
         }
     }
 
-    public void StartTraining(string ravenId, TrainingType type)
+    // ASSINATURA CORRIGIDA PARA RETORNAR BOOL
+    public bool StartTraining(string ravenId, TrainingType type)
     {
         var raven = SaveManager.Instance.CurrentSave.ravens.FirstOrDefault(r => r.id == ravenId);
-        if (raven == null || raven.state != RavenState.Available) return;
-
-        // Define a duração com base na sua regra de negócio
-        int duration = 0;
-        switch (type)
+        
+        if (raven == null || raven.state != RavenState.Available)
         {
-            case TrainingType.Speed: duration = 3; break;
-            case TrainingType.Endurance: duration = 5; break;
-            case TrainingType.Focus: duration = 7; break;
+            Debug.LogWarning($"[TrainingManager] Falha ao treinar. Corvo {ravenId} indisponível.");
+            return false; // Retorna falha para a UI
         }
 
-        // Tranca o estado do corvo
-        raven.state = RavenState.Training;
+        int duration = type == TrainingType.Speed ? 3 : type == TrainingType.Endurance ? 5 : 7;
 
-        // Registra o treino ativo no save
+        raven.state = RavenState.Training;
         var newTraining = new TrainingData(raven.id, type, duration);
         SaveManager.Instance.CurrentSave.activeTrainings.Add(newTraining);
 
-        Debug.Log($"[TrainingManager] Corvo {raven.id} iniciou treino de {type}. Duração: {duration} dias.");
+        Debug.Log($"[TrainingManager] Sucesso: Corvo {ravenId} iniciou treino de {type}. Duração: {duration} dias.");
+        return true; // Retorna sucesso para a UI
     }
 
     private void ProcessTrainings()
     {
         var activeTrainings = SaveManager.Instance.CurrentSave.activeTrainings;
 
-        // Loop reverso pois removeremos itens da lista
         for (int i = activeTrainings.Count - 1; i >= 0; i--)
         {
             var training = activeTrainings[i];
@@ -98,7 +88,6 @@ public class TrainingManager : MonoBehaviour
         var raven = SaveManager.Instance.CurrentSave.ravens.FirstOrDefault(r => r.id == training.ravenId);
         if (raven != null)
         {
-            // Aplica a evolução dos atributos baseada no tipo de treino
             switch (training.type)
             {
                 case TrainingType.Speed: raven.speed++; break;
@@ -106,10 +95,8 @@ public class TrainingManager : MonoBehaviour
                 case TrainingType.Focus: raven.focus++; break;
             }
 
-            // Libera o corvo
             raven.state = RavenState.Available;
-            
-            Debug.Log($"[TrainingManager] Corvo {raven.id} terminou o treino! Novo status -> Vel: {raven.speed}, Vida: {raven.lifespan}, Foco: {raven.focus}");
+            Debug.Log($"[TrainingManager] Corvo {raven.id} terminou o treino!");
         }
     }
 }

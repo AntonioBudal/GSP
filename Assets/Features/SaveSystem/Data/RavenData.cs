@@ -14,6 +14,7 @@ public enum RavenState
 public class RavenData
 {
     public string id;
+    public int age;
     public int speed;
     public int lifespan;
     public int focus;
@@ -25,6 +26,7 @@ public class RavenData
     public RavenData(string id, int speed, int lifespan, int focus)
     {
         this.id = id;
+        this.age = 0;
         this.speed = speed;
         this.lifespan = lifespan;
         this.focus = focus;

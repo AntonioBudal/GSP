@@ -7,7 +7,6 @@ public class UIManager : MonoBehaviour
     public static UIManager Instance { get; private set; }
 
     [Header("Popups Registrados")]
-    // Arraste todos os objetos de popup da cena para esta lista
     [SerializeField] private List<PopupBase> registeredPopups = new List<PopupBase>();
 
     private PopupBase currentPopup;
@@ -20,37 +19,53 @@ public class UIManager : MonoBehaviour
             return;
         }
         Instance = this;
-
-        // Garante que o jogo comece com todas as telas fechadas
         CloseAllPopups();
+    }
+
+    private void Start()
+    {
+        if (TimeManager.Instance != null)
+        {
+            TimeManager.Instance.OnDayAdvanced += BroadcastDayChange;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (TimeManager.Instance != null)
+        {
+            TimeManager.Instance.OnDayAdvanced -= BroadcastDayChange;
+        }
+    }
+
+    private void BroadcastDayChange()
+    {
+        // Se houver algum modal na cara do jogador, manda ele repuxar os dados
+        currentPopup?.RefreshView();
     }
 
     private void Update()
     {
-        // Atalho para fechar qualquer popup aberto usando ESC
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             CloseCurrentPopup();
         }
-
-        
     }
 
-    public void OpenPopup(PopupType type)
+    // Agora aceita um objeto genérico como payload de dados
+    public void OpenPopup(PopupType type, object payload = null)
     {
-        // Se já tem um popup aberto, fecha ele primeiro
         if (currentPopup != null)
         {
             currentPopup.Close();
         }
 
-        // Busca o novo popup na lista
         PopupBase popupToOpen = registeredPopups.FirstOrDefault(p => p.popupType == type);
 
         if (popupToOpen != null)
         {
             currentPopup = popupToOpen;
-            currentPopup.Open();
+            currentPopup.Open(payload); // Repassa o payload
             Debug.Log($"[UIManager] Popup aberto: {type}");
         }
         else
@@ -64,7 +79,6 @@ public class UIManager : MonoBehaviour
         if (currentPopup != null)
         {
             currentPopup.Close();
-            Debug.Log($"[UIManager] Popup fechado: {currentPopup.popupType}");
             currentPopup = null;
         }
     }

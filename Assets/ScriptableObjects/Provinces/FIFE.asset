@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c1163544110789d429ca5d48d9270809, type: 3}
-  m_Name: PROV_01
+  m_Name: FIFE
   m_EditorClassIdentifier: Assembly-CSharp::ProvinceConfig
-  id: 1
-  provinceName: Prov_1
+  id: FIFE
+  provinceName: FIFE
   neighbors:
-  - {fileID: 11400000, guid: b0ee5ce5f3734ff4685cdb965ab48e37, type: 2}
+  - {fileID: 11400000, guid: a2c5ed73db047e743bf70d7cadffd836, type: 2}

@@ -7,7 +7,7 @@ public class SaveData
     public int currentDay;
     
     public List<RavenData> ravens = new List<RavenData>();
-    public List<ProvinceState> provinces = new List<ProvinceState>();
+    public List<ProvinceStateData> provinces = new List<ProvinceStateData>();
     public List<ExpeditionData> activeExpeditions = new List<ExpeditionData>();
     public List<TrainingData> activeTrainings = new List<TrainingData>();
     public List<BreedingData> activeBreedings = new List<BreedingData>();

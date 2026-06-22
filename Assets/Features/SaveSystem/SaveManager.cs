@@ -77,4 +77,25 @@ public class SaveManager : MonoBehaviour
             TimeManager.Instance.SetCurrentDay(CurrentSave.currentDay);
         }
     }
+
+    // Apaga o arquivo físico, limpa a memória e avisa a engine
+    public void DeleteSaveAndRestart()
+    {
+        if (File.Exists(saveFilePath))
+        {
+            File.Delete(saveFilePath);
+        }
+
+        CurrentSave = new SaveData();
+        
+        if (TimeManager.Instance != null)
+        {
+            TimeManager.Instance.SetCurrentDay(1);
+        }
+
+        Debug.Log("[SaveManager] Save deletado. O mundo voltou ao estaca zero.");
+        
+        // Recarrega a cena atual da Unity para limpar qualquer resíduo visual
+        UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+    }
 }

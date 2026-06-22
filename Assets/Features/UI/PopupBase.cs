@@ -5,18 +5,38 @@ public abstract class PopupBase : MonoBehaviour
     [Header("Configurações Base")]
     public PopupType popupType;
 
-    // Método virtual permite que as classes filhas adicionem comportamentos extras se precisarem
-    public virtual void Open()
+    public virtual void RefreshView()
     {
+        // Só gasta processamento se o popup estiver visível na tela
+        if (gameObject.activeSelf && currentPayload != null)
+        {
+            BindData();
+        }
+    }
+    protected object currentPayload;
+
+    public virtual void Open(object dataPayload = null)
+    {
+        currentPayload = dataPayload;
         gameObject.SetActive(true);
-        Refresh(); // Sempre que abre, força a atualização com os dados mais recentes do Save
+        BindData(); // Força a renderização baseada no payload recebido
     }
 
     public virtual void Close()
     {
         gameObject.SetActive(false);
+        currentPayload = null; // Limpa o estado temporário
     }
 
-    // Contrato obrigatório: todo popup precisa saber desenhar seus próprios dados
-    protected abstract void Refresh();
+    // Contrato obrigatório: como o popup consome o currentPayload
+    protected abstract void BindData();
+
+    // Utilitário para limpar listas
+    protected void ClearContainer(Transform container)
+    {
+        foreach (Transform child in container)
+        {
+            Destroy(child.gameObject);
+        }
+    }
 }

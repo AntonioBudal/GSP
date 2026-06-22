@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c1163544110789d429ca5d48d9270809, type: 3}
-  m_Name: PROV_03
+  m_Name: ABERDEEN
   m_EditorClassIdentifier: Assembly-CSharp::ProvinceConfig
-  id: 3
-  provinceName: Prov_3
+  id: ABERDEEN
+  provinceName: ABERDEEN
   neighbors: []

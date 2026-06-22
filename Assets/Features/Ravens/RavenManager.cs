@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using System.Linq;
 
 public class RavenManager : MonoBehaviour
 {
@@ -13,6 +14,11 @@ public class RavenManager : MonoBehaviour
             return;
         }
         Instance = this;
+    }
+
+    public RavenData GetRavenById(string ravenId)
+    {
+        return SaveManager.Instance.CurrentSave.ravens.FirstOrDefault(r => r.id == ravenId);
     }
 
     private void Update()

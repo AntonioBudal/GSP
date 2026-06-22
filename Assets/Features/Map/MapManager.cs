@@ -6,9 +6,8 @@ public class MapManager : MonoBehaviour
 {
     public static MapManager Instance { get; private set; }
 
-    [Header("Map Configuration")]
-    // Referência de todas as províncias que existem no seu jogo
-    [SerializeField] private List<ProvinceConfig> allProvinces;
+    [Header("Atlas Global")]
+    [SerializeField] private ProvinceDatabase database;
 
     private void Awake()
     {
@@ -18,65 +17,83 @@ public class MapManager : MonoBehaviour
             return;
         }
         Instance = this;
+
     }
 
-    private void Update()
+    private void Start()
     {
-        // Atalho de Debug: Aperte 'M' para revelar a primeira província de Fronteira que o sistema achar
-        if (Input.GetKeyDown(KeyCode.M))
+        if (GetProvinceStatus("LOTHIAN") == ProvinceStatus.Hidden)
         {
-            // Busca no save se existe alguma fronteira
-            var frontier = SaveManager.Instance.CurrentSave.provinces
-                .FirstOrDefault(p => p.status == ProvinceStatus.Frontier);
-            
-            if (frontier != null)
+            RevealProvince("LOTHIAN");
+
+           
+            var allViews = FindObjectsByType<ProvinceView>();
+            foreach (var view in allViews)
             {
-                RevealProvince(frontier.id);
-            }
-            else
-            {
-                Debug.Log("[MapManager] Nenhuma província de fronteira encontrada para revelar.");
+                view.RefreshVisualState();
             }
         }
     }
 
-    // Método central chamado quando um corvo conclui a exploração
+    // --- CONSULTAS (Usadas pela UI e ProvinceView) ---
+
+    public ProvinceConfig GetProvinceConfig(string provinceId)
+    {
+        if (database == null) return null;
+        return database.provinces.FirstOrDefault(p => p.id == provinceId);
+    }
+
+    public ProvinceStatus GetProvinceStatus(string provinceId)
+    {
+        var saveState = SaveManager.Instance.CurrentSave.provinces.FirstOrDefault(p => p.provinceId == provinceId);
+        
+        // Se não está no save, logicamente está oculta
+        return saveState != null ? saveState.status : ProvinceStatus.Hidden;
+    }
+
+    // --- REGRAS DE NEGÓCIO (Usadas pelo ExpeditionManager) ---
+
     public void RevealProvince(string provinceId)
     {
-        // 1. Busca a configuração estática do mapa
-        var config = allProvinces.FirstOrDefault(c => c.id == provinceId);
+        var config = GetProvinceConfig(provinceId);
         if (config == null)
         {
-            Debug.LogError($"[MapManager] Província {provinceId} não existe nas configurações!");
+            Debug.LogError($"[MapManager] Falha ao revelar: Província {provinceId} não existe no Database.");
             return;
         }
 
-        // 2. Busca ou cria o estado mutável no Save
-        var saveState = SaveManager.Instance.CurrentSave.provinces.FirstOrDefault(p => p.id == provinceId);
-        if (saveState == null)
+        // 1. Atualiza a província alvo para Revelada
+        SetProvinceStatus(provinceId, ProvinceStatus.Revealed);
+        Debug.Log($"[MapManager] Território Descoberto: {config.provinceName}");
+
+        // 2. Atualiza os vizinhos Ocultos para Fronteira
+        foreach (var neighbor in config.neighbors)
         {
-            saveState = new ProvinceState(provinceId, ProvinceStatus.Revealed);
-            SaveManager.Instance.CurrentSave.provinces.Add(saveState);
+            if (GetProvinceStatus(neighbor.id) == ProvinceStatus.Hidden)
+            {
+                SetProvinceStatus(neighbor.id, ProvinceStatus.Frontier);
+                Debug.Log($"[MapManager] Nova Fronteira: {neighbor.provinceName}");
+            }
+        }
+
+        foreach (var view in FindObjectsByType<ProvinceView>())
+        {
+            view.RefreshVisualState();
+        }
+    }
+
+    private void SetProvinceStatus(string provinceId, ProvinceStatus newStatus)
+    {
+        var saveList = SaveManager.Instance.CurrentSave.provinces;
+        var existingState = saveList.FirstOrDefault(p => p.provinceId == provinceId);
+
+        if (existingState != null)
+        {
+            existingState.status = newStatus;
         }
         else
         {
-            saveState.status = ProvinceStatus.Revealed;
-        }
-
-        Debug.Log($"[MapManager] Área Revelada: {config.provinceName}");
-
-        // 3. Atualiza os vizinhos para "Fronteira"
-        foreach (var neighbor in config.neighbors)
-        {
-            var neighborState = SaveManager.Instance.CurrentSave.provinces.FirstOrDefault(p => p.id == neighbor.id);
-            
-            // Se o vizinho não existe no save, significa que está Oculto.
-            // Oculto é o estado padrão da inexistência de dados (para poupar tamanho de save).
-            if (neighborState == null)
-            {
-                SaveManager.Instance.CurrentSave.provinces.Add(new ProvinceState(neighbor.id, ProvinceStatus.Frontier));
-                Debug.Log($"[MapManager] Nova Fronteira Descoberta: {neighbor.provinceName} ({neighbor.id})");
-            }
+            saveList.Add(new ProvinceStateData(provinceId, newStatus));
         }
     }
 }

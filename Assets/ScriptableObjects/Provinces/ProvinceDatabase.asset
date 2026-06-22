@@ -9,10 +9,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c1163544110789d429ca5d48d9270809, type: 3}
-  m_Name: PROV_02
-  m_EditorClassIdentifier: Assembly-CSharp::ProvinceConfig
-  id: 2
-  provinceName: Prov_2
-  neighbors:
+  m_Script: {fileID: 11500000, guid: b11fdd437adca7140a05ac0a3dd105cc, type: 3}
+  m_Name: ProvinceDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::ProvinceDatabase
+  provinces:
+  - {fileID: 11400000, guid: dd4271eac2fe51a45b45b060a3d858f6, type: 2}
+  - {fileID: 11400000, guid: b0ee5ce5f3734ff4685cdb965ab48e37, type: 2}
   - {fileID: 11400000, guid: a2c5ed73db047e743bf70d7cadffd836, type: 2}

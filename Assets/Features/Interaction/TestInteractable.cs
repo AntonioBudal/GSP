@@ -1,6 +1,6 @@
 using UnityEngine;
+using System.Linq; // Necessário para filtrar a lista
 
-// Exige que o GameObject tenha um colisor 2D para funcionar
 [RequireComponent(typeof(Collider2D))]
 public class TestInteractable : MonoBehaviour, IInteractable
 {
@@ -9,10 +9,15 @@ public class TestInteractable : MonoBehaviour, IInteractable
 
     public void OnInteract()
     {
-        // Quando o InteractionManager detectar o clique neste objeto, ele chama este método.
         if (UIManager.Instance != null)
         {
-            UIManager.Instance.OpenPopup(popupToOpen);
+            // 1. Busca APENAS os corvos disponíveis na fonte de dados
+            var availableRavens = SaveManager.Instance.CurrentSave.ravens
+                .Where(r => r.state == RavenState.Available)
+                .ToList();
+
+            // 2. Envia a lista como "Payload" (o segundo parâmetro) para o UIManager
+            UIManager.Instance.OpenPopup(popupToOpen, availableRavens);
         }
         else
         {
